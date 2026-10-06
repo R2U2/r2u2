@@ -1,0 +1,6 @@
+ENUM
+    Color: {};
+INPUT
+    a: bool;
+FTSPEC
+    a;

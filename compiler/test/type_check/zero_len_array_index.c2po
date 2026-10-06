@@ -1,0 +1,4 @@
+INPUT
+    A: int[0];
+FTSPEC
+    true;

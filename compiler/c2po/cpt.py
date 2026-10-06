@@ -160,10 +160,7 @@ class Constant(Expression):
         else:
             raise ValueError(f"Bad value ({value})")
 
-        if types.is_bool_type(self.type):
-            self.engine = types.R2U2Engine.TEMPORAL_LOGIC
-        else:
-            self.engine = types.R2U2Engine.BOOLEANIZER
+        self.engine = types.R2U2Engine.BOOLEANIZER
 
 class MissionTime(Expression):
     """MissionTime is a special variable that represents the symbolic mission time. This is only
@@ -369,6 +366,9 @@ class SetAggregation(Expression):
         self.type = types.BoolType()
         self.symbol = operator.value
 
+        self.wpd = expr.wpd
+        self.bpd = expr.bpd
+
     @staticmethod
     def ForEach(
         loc: log.FileLocation, var: Variable, set: ArrayExpression, expr: Expression
@@ -499,6 +499,7 @@ class OperatorKind(enum.Enum):
             OperatorKind.LESS_THAN,
             OperatorKind.LESS_THAN_OR_EQUAL,
             OperatorKind.COUNT,
+            OperatorKind.PREVIOUS,
         }
 
     def is_extended_operator(self) -> bool:
@@ -523,8 +524,12 @@ class Operator(Expression):
         self.operator: OperatorKind = op_kind
         self.symbol: str = op_kind.value
 
-        self.wpd = max([c.wpd for c in children])
-        self.bpd = min([c.bpd for c in children])
+        if children:
+            self.wpd = max(c.wpd for c in children)
+            self.bpd = min(c.bpd for c in children)
+        else:
+            self.wpd = 0
+            self.bpd = 0
 
         if is_temporal_operator(self) or is_logical_operator(self):
             self.engine = types.R2U2Engine.TEMPORAL_LOGIC
@@ -957,6 +962,8 @@ def is_multi_arity_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
         OperatorKind.LOGICAL_AND,
         OperatorKind.LOGICAL_OR,
+        OperatorKind.BITWISE_AND,
+        OperatorKind.BITWISE_OR,
         OperatorKind.ARITHMETIC_ADD,
         OperatorKind.ARITHMETIC_MULTIPLY,
     }
@@ -1058,6 +1065,8 @@ class Formula(Expression):
         self.symbol: str = label
         self.formula_number: int = fnum
         self.engine = types.R2U2Engine.TEMPORAL_LOGIC
+        self.wpd = expr.wpd
+        self.bpd = expr.bpd
 
     def get_expr(self) -> Expression:
         return cast(Expression, self.children[0])
@@ -1084,6 +1093,8 @@ class Contract(Expression):
         super().__init__(loc, [assume, guarantee])
         self.symbol: str = label
         self.formula_numbers: tuple[int, int, int] = (fnum1, fnum2, fnum3)
+        self.wpd = max(fnum1, fnum2, fnum3)
+        self.bpd = min(fnum1, fnum2, fnum3)
 
     def get_assumption(self) -> Expression:
         return self.children[0]
@@ -1321,6 +1332,8 @@ class Program(Node):
                 ft_specs += section.specs
             elif isinstance(section, PastTimeSpecSection):
                 pt_specs += section.specs
+
+        self.max_wpd = max([spec.wpd for spec in ft_specs]) if ft_specs else 0
 
         self.ft_spec_set = SpecificationSet(loc, ft_specs)
         self.pt_spec_set = SpecificationSet(loc, pt_specs)
@@ -1984,7 +1997,12 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += f".{expr.member}"
         elif isinstance(expr, ArrayExpression):
-            if seen == len(expr.children):
+            if len(expr.children) == 0:
+                # `seen == len(children)` is also true when both are 0; handle empty
+                # arrays explicitly so we emit "{}" rather than just "}".
+                if seen == 0:
+                    s += "{}"
+            elif seen == len(expr.children):
                 s += "}"
             elif seen == 0:
                 s += "{"

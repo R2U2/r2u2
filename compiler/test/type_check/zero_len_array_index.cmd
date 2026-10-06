@@ -1,0 +1,3 @@
+parse_c2po zero_len_array_index.c2po
+enable_booleanizer
+type_check

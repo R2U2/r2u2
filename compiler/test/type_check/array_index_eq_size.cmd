@@ -1,0 +1,3 @@
+parse_c2po array_index_eq_size.c2po
+enable_booleanizer
+type_check

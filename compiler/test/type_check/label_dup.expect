@@ -1,0 +1,1 @@
+type_check: error: label_dup.c2po:5: symbol 'p' already in use

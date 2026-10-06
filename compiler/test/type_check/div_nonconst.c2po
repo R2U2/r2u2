@@ -1,0 +1,4 @@
+INPUT
+    a,b: int;
+FTSPEC
+    (a / b) > 0;

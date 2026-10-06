@@ -1,5 +1,6 @@
 import argparse
 import sys
+import tempfile
 import c2po.main
 import c2po.log
 import c2po.sat
@@ -24,9 +25,15 @@ parser.add_argument(
     const=True,
     help="run in interactive mode, ignores all other arguments",
 )
-parser.add_argument(
+spec_group = parser.add_mutually_exclusive_group()
+spec_group.add_argument(
     "--spec", 
     help="specification file (either .c2po, .mltl, or .equiv)"
+)
+spec_group.add_argument(
+    "--formula",
+    type=str,
+    help="MLTL formula string, equivalent to a single-formula .mltl file passed to --spec",
 )
 parser.add_argument(
     "--trace",
@@ -242,42 +249,55 @@ if args.script:
 elif args.interactive:
     return_code = c2po.main.interactive()
     sys.exit(return_code.value)
-elif args.spec:
-    return_code = c2po.main.cli(
-        spec_filename=args.spec,
-        trace_filename=args.trace,
-        map_filename=args.map,
-        output_filename=args.output,
-        write_bounds_filename=args.write_bounds,
-        quiet=args.quiet,
-        debug=args.debug,
-        only_parse=args.parse,
-        only_type_check=args.type_check,
-        only_compile=args.compile,
-        mission_time=args.mission_time,
-        scq_constant=args.scq_constant,
-        enable_booleanizer=args.booleanizer,
-        enable_aux=args.aux,
-        enable_cse=args.cse,
-        enable_rewrite=args.rewrite,
-        enable_extops=args.extops,
-        enable_eqsat=args.eqsat,
-        enable_eqsat_equiv_check=args.eqsat_check_equiv,
-        enable_eqsat_const_folding=args.eqsat_const_folding,
-        enable_eqsat_associative=args.eqsat_associative,
-        enable_eqsat_commutative=args.eqsat_commutative,
-        enable_eqsat_multi_arity=args.eqsat_multi_arity,
-        enable_eqsat_temporal=args.eqsat_temporal,
-        eqsat_max_time=args.eqsat_max_time,
-        eqsat_max_memory=args.eqsat_max_memory,
-        num_gurobi_threads=args.num_gurobi_threads,
-        egglog_path=args.egglog_path,
-        check_sat=args.check_sat,
-        smt_theory=args.smt_encoding,
-        smt_max_time=args.smt_max_time,
-        smt_max_memory=args.smt_max_memory,
-        smt_solver_path=args.smt_solver,
-    )
+elif args.spec or args.formula:
+    spec_filename = args.spec
+    formula_file = None
+    if args.formula:
+        # parse_mltl requires each formula to end with a newline
+        formula = args.formula if args.formula.endswith("\n") else args.formula + "\n"
+        formula_file = tempfile.NamedTemporaryFile(suffix=".mltl")
+        formula_file.write(formula.encode("utf-8"))
+        formula_file.flush()
+        spec_filename = formula_file.name
+    try:
+        return_code = c2po.main.cli(
+            spec_filename=spec_filename,
+            trace_filename=args.trace,
+            map_filename=args.map,
+            output_filename=args.output,
+            write_bounds_filename=args.write_bounds,
+            quiet=args.quiet,
+            debug=args.debug,
+            only_parse=args.parse,
+            only_type_check=args.type_check,
+            only_compile=args.compile,
+            mission_time=args.mission_time,
+            scq_constant=args.scq_constant,
+            enable_booleanizer=args.booleanizer,
+            enable_aux=args.aux,
+            enable_cse=args.cse,
+            enable_rewrite=args.rewrite,
+            enable_extops=args.extops,
+            enable_eqsat=args.eqsat,
+            enable_eqsat_equiv_check=args.eqsat_check_equiv,
+            enable_eqsat_const_folding=args.eqsat_const_folding,
+            enable_eqsat_associative=args.eqsat_associative,
+            enable_eqsat_commutative=args.eqsat_commutative,
+            enable_eqsat_multi_arity=args.eqsat_multi_arity,
+            enable_eqsat_temporal=args.eqsat_temporal,
+            eqsat_max_time=args.eqsat_max_time,
+            eqsat_max_memory=args.eqsat_max_memory,
+            num_gurobi_threads=args.num_gurobi_threads,
+            egglog_path=args.egglog_path,
+            check_sat=args.check_sat,
+            smt_theory=args.smt_encoding,
+            smt_max_time=args.smt_max_time,
+            smt_max_memory=args.smt_max_memory,
+            smt_solver_path=args.smt_solver,
+        )
+    finally:
+        if formula_file is not None:
+            formula_file.close()
     sys.exit(return_code.value)
 else:
     parser.print_help()

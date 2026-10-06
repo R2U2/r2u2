@@ -1,0 +1,3 @@
+parse_c2po: error: mission_m_no_set.c2po:4: mission time used but not set. Set using the 'set_mission_time' command or the '--mission-time' option.
+error: guard condition not met for type_check: valid program
+    consider trying one of the following commands: parse_c2po, parse_mltl

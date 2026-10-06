@@ -1,0 +1,2 @@
+parse_c2po mission_m_no_set.c2po
+type_check

@@ -1,0 +1,5 @@
+INPUT
+	b0: bool;
+
+FTSPEC
+	SPEC0: prev(true, b0);
