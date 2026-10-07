@@ -127,6 +127,10 @@
             "output": "type_check/bad_prev.expect"
         },
         {
+            "script": "type_check/division_non_const.cmd",
+            "output": "type_check/division_non_const.expect"
+        },
+        {
             "script": "type_check/neg_array_index.cmd",
             "output": "type_check/neg_array_index.expect"
         },
@@ -161,10 +165,6 @@
         {
             "script": "type_check/mod_zero_expr.cmd",
             "output": "type_check/mod_zero_expr.expect"
-        },
-        {
-            "script": "type_check/div_nonconst.cmd",
-            "output": "type_check/div_nonconst.expect"
         },
         {
             "script": "type_check/float_div_zero_const.cmd",

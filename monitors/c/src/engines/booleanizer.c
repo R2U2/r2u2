@@ -249,7 +249,7 @@ r2u2_status_t r2u2_bz_update(r2u2_monitor_t* monitor)
         case R2U2_BZ_OP_IDIV:
             i1 = (monitor->value_buffer)[instr->param1].i;
             i2 = (monitor->value_buffer)[instr->param2].i;
-            (monitor->value_buffer)[instr->memory_reference].i = i1 / i2;
+            (monitor->value_buffer)[instr->memory_reference].i = (i2 != 0) ? (i1 / i2) : 0;
 
             R2U2_DEBUG_PRINT("\tBZ IDIV\n");
             R2U2_DEBUG_PRINT("\tb%d = %d = %d / %d (b%d / b%d)\n", instr->memory_reference,
@@ -258,7 +258,7 @@ r2u2_status_t r2u2_bz_update(r2u2_monitor_t* monitor)
         case R2U2_BZ_OP_FDIV:
             f1 = (monitor->value_buffer)[instr->param1].f;
             f2 = (monitor->value_buffer)[instr->param2].f;
-            (monitor->value_buffer)[instr->memory_reference].f = f1 / f2;
+            (monitor->value_buffer)[instr->memory_reference].f = (f2 != 0.0) ? (f1 / f2) : 0.0;
 
             R2U2_DEBUG_PRINT("\tBZ FDIV\n");
             R2U2_DEBUG_PRINT("\tb%d = %f = %f / %f (b%d / b%d)\n", instr->memory_reference,

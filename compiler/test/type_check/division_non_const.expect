@@ -1,0 +1,4 @@
+type_check: warning: division_non_const.c2po:6: division by non-const, note that (i0 / i1)=0 if i1=0
+    (i0 / i1)
+type_check: warning: division_non_const.c2po:7: division by non-const, note that (f0 / f1)=0 if f1=0
+    (f0 / f1)
