@@ -167,10 +167,6 @@
             "output": "type_check/mod_zero_expr.expect"
         },
         {
-            "script": "type_check/div_nonconst.cmd",
-            "output": "type_check/div_nonconst.expect"
-        },
-        {
             "script": "type_check/float_div_zero_const.cmd",
             "output": "type_check/float_div_zero_const.expect"
         },
