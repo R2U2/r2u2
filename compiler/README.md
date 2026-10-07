@@ -97,7 +97,8 @@ These features are optional. Satisfiability and equivalence checking need an SMT
 ### Satisfiability Checking
 
 C2PO can encode future-time formulas as SMT and check whether each formula (and, if there is more
-than one, their conjunction) is satisfiable. Results are `sat`, `unsat`, or `unknown`.
+than one, their conjunction) is satisfiable. Results are `sat`, `unsat`, or `unknown`. See
+`docs/user/sat.md`.
 
 From the CLI, enable checking with `--check-sat`. `--compile` stops before assembly if you only want
 the SAT result:
@@ -106,7 +107,7 @@ the SAT result:
 
 Useful CLI options:
 
-- `--smt-encoding {uflia,qf_uflia,qf_bv}` - SMT theory (default: `uflia`)
+- `--smt-encoding {uflia,qf_uflia,qf_bv,uf}` - SMT theory (default: `uflia`)
 - `--smt-max-time` / `--smt-max-memory` - solver resource limits
 - `--smt-solver` - path to an SMTLIB2-compliant executable (otherwise C2PO searches `PATH`)
 

@@ -6,6 +6,7 @@ mltl_std
 repl
 optimizations
 equiv
+sat
 outputs
 commands
 options
