@@ -800,9 +800,9 @@ def to_uflia_smtlib2(
                 # Special case for F[0,0] phi and F[1,1] phi -- no need for quantifier
                 # This is necessary for performance reasons, many FRET formulas timeout without this optimization
                 if lb == "0" and ub == "0":
-                    return f"({fun_signature} (or (<= len k) ({expr_map[expr.children[0]]} k len)))"
+                    return f"({fun_signature} (and (> len k) ({expr_map[expr.children[0]]} k len)))"
                 elif lb == "1" and ub == "1":
-                    return f"({fun_signature} (or (<= len (+ 1 k)) ({expr_map[expr.children[0]]} (+ 1 k) len)))"
+                    return f"({fun_signature} (and (> len (+ 1 k)) ({expr_map[expr.children[0]]} (+ 1 k) len)))"
 
                 result = f"(assert (<= {lb} {ub}))\n"
             else: 
@@ -811,9 +811,9 @@ def to_uflia_smtlib2(
                 ub = expr.interval.ub
 
                 if lb == 0 and ub == 0:
-                    return f"({fun_signature} (or (<= len k) ({expr_map[expr.children[0]]} k len)))"
+                    return f"({fun_signature} (and (> len k) ({expr_map[expr.children[0]]} k len)))"
                 elif lb == 1 and ub == 1:
-                    return f"({fun_signature} (or (<= len (+ 1 k)) ({expr_map[expr.children[0]]} (+ 1 k) len)))"
+                    return f"({fun_signature} (and (> len (+ 1 k)) ({expr_map[expr.children[0]]} (+ 1 k) len)))"
 
             return result + f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[0]]} i len)))))"
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
