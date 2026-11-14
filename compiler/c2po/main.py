@@ -274,6 +274,7 @@ def cli(
     enable_eqsat_commutative: bool,
     enable_eqsat_multi_arity: bool,
     enable_eqsat_temporal: bool,
+    enable_eqsat_fret: bool,
     eqsat_max_time: int,
     eqsat_max_memory: int,
     num_gurobi_threads: int,
@@ -326,7 +327,8 @@ def cli(
                   f"--{'no-' if not enable_eqsat_associative else ''}associative " \
                   f"--{'no-' if not enable_eqsat_commutative else ''}commutative " \
                   f"--{'no-' if not enable_eqsat_multi_arity else ''}multi-arity " \
-                  f"--{'no-' if not enable_eqsat_temporal else ''}temporal" \
+                  f"--{'no-' if not enable_eqsat_temporal else ''}temporal " \
+                  f"--{'no-' if not enable_eqsat_fret else ''}fret " \
                   f"{f'--egglog-bin {egglog_path}' if egglog_path else ''} " \
                   f"{f'--smt-solver-path {smt_solver_path}' if smt_solver_path else ''}"
         script_lines.append(cmd)
@@ -420,6 +422,7 @@ def main_rs(
         enable_eqsat_commutative=False,
         enable_eqsat_multi_arity=False,
         enable_eqsat_temporal=False,
+        enable_eqsat_fret=False,
         eqsat_max_time=5,
         eqsat_max_memory=0,
         num_gurobi_threads=0,

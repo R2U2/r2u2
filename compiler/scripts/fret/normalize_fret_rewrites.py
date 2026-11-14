@@ -1,6 +1,6 @@
 """
-This script processes the FRET rewrite rules from the FRET paper.
-It outputs a set of files, where each file contains a pair of formulas, one on each line.
+This script processes the FRET rewrite rules from the FRET paper and writes them
+to a JSON file in the same format as compiler/scripts/rewrites/rewrites.json.
 
 Each instance of `__p` in the formulas is replaced with `a0`, `__q` with `a1`, etc.
 
@@ -17,18 +17,20 @@ All instances of `Op[<= __h]` are replaced with `Op[0, ub]`.
 All instances of `Op[= __h]` are replaced with `Op[ub, ub]`.
 All instances of `Op[n, __h]` are replaced with `Op[n, ub]` where `n` is a natural number.
 
-After generating the files, it tests the MLTL parser on all generated files.
+Compound interval terms (e.g. `b1+1`) may remain in the output; run
+`ground_rewrites.py` afterwards to ground the pre terms.
 
 Usage:
-python3 normalize_fret_rewrites.py
+python3 normalize_fret_rewrites.py [output.json]
 """
 
+import json
 import os
 import sys
 from pathlib import Path
 
 CURDIR = Path(os.getcwd())
-MLTLDIR = CURDIR / "equiv"
+DEFAULT_OUTPUT = CURDIR / "fret_rewrites.json"
 
 # List of rules. The last two elements are the LHS and RHS of the rule.
 # The other elements are the assumptions of the rule.
@@ -80,7 +82,7 @@ FRETFutureTimeSimplifications: list[list[str]] = [
     ['X (__p & __r)', '(X __p) & (X __r)'],
     ['X (__p | __r)', '(X __p) | (X __r)'],
     ['X (X __p)', 'F[2,2] __p'],
-    ['X (G (G[0,0] __r))', 'G[1,M] __r'],
+    ['X (G __r)', 'G[1,M] __r'],
     ['X (G[<= __h] __p)', 'G[1, __h+1] __p'],
     ['X (G[= __h] __p)', 'G[__h+1, __h+1] __p'],
     ['X (F __p)', 'F[1,M] __p'], 
@@ -89,7 +91,7 @@ FRETFutureTimeSimplifications: list[list[str]] = [
     ['X (F[= __h] __p)', 'F[__h+1, __h+1] __p'],
     ['X (F[1,__h] __p)', 'F[2,__h+1] __p'],
     ['X (__p U __q)', '__p U[1,M] __q'],
-    ['X ((G[0,0] __p) V (G[0,0] __q))', '__p V[1,M] __q'],
+    ['X (__p V __q)', '__p V[1,M] __q'],
     ['X (__p V[<= __h] __q)', '__p V[1, __h+1] __q'],
 
     # Simplifications reducing Next via distributive law:
@@ -97,17 +99,17 @@ FRETFutureTimeSimplifications: list[list[str]] = [
     ['(X __p) U ((X __q) & (F[1, __h+1] __r))', 'X (__p U (__q & (F[<= __h] __r)))'],
     ['(X __p) U ((X __q) & (G[1, __h+1] __r))', 'X (__p U (__q & (G[<= __h] __r)))'],
     ['(X __p) U ((X __q) & (F[1,M] __r))', 'X (__p U (__q & (F __r)))'],
-    ['(X __p) U ((X __q) & (X (G __r)))', 'X (__p U (__q & (G __r)))'], # 55
-    ['(X __p) U ((X __q) & ((X (__r V __s)) | (X (G __t))))', 'X (__p U (__q & ((__r V __s) | G __t)))'],
-    ['(X __p) U ((X __q) & (X (__r V __s)))', 'X (__p U (__q & (__r V __s)))'],
+    ['(X __p) U ((X __q) & (G[1,M] __r))', 'X (__p U (__q & (G __r)))'], # 55
+    ['(X __p) U ((X __q) & ((__r V[1,M] __s) | G[1,M] __t))', 'X (__p U (__q & ((__r V __s) | G __t)))'],
+    ['(X __p) U ((X __q) & (__r V[1,M] __s))', 'X (__p U (__q & (__r V __s)))'],
     ['(X __p) U ((X __q) & (F[2,2] __r))', 'X (__p U (__q & (X __r)))'],
     ['(X __p) U ((X __q) & (X __r))', 'X(__p U (__q & __r))'],
-    ['(X __p) U ((X __q) & ((X (G __r)) & (X __s)))', 'X (__p U (__q & ((G __r) & __s)))'],
+    ['(X __p) U ((X __q) & ((G[1,M] __r) & (X __s)))', 'X (__p U (__q & ((G __r) & __s)))'],
     ['G (X __p)', 'X (G __p)'],
     ['F[__l,__h] (X __p)', 'X (F[__l,__h] __p)'],
 
     # Simplifications reducing when in or not in a mode:
-    ['(! __p) => (__q | (G (! ((! __p) & (X __p)))))', '(! __p) => (__q | (G[1,M] (! __p)))'],
+    ['(! __p) => (__q | (G (! ((! __p) & (X __p)))))', '(! __p) => (__q | (G (X (! __p))))'],
     ['(__p) => (__q | F[< __h] (__p & (X (! __p))))', '(__p) => (__q | F[< __h] (X (! __p)))'],
     ['(__p & __r) => (__q | F[< __h] (__p & (X (! __p))))', '(__p & __r) => (__q | F[< __h] (X (! __p)))'],
     ['(! __p) => (__q | F[< __h] ((! __p) & (X __p)))', '(! __p) => (__q | F[< __h] (X __p))'],
@@ -232,8 +234,6 @@ FRETFutureTimeSimplifications: list[list[str]] = [
     ['(G ((__p & (X (! __p))) => (((X __p) V[1,M] (G[0,0] __q)) & (X __r)))) & ((! __p) => (((X __p) V __q) & __r))', '(G (((! __p) => __q) & ((__p & (X (! __p)) => (X __r))))) & ((! __p) => __r)'], # modified -- added G[0,0]
 ]
 
-os.makedirs(MLTLDIR, exist_ok=True)
-
 def normalize_formula(formula: str) -> str:
     formula = formula.replace("TRUE", "true")
     formula = formula.replace("FALSE", "false")
@@ -276,29 +276,48 @@ def normalize_formula(formula: str) -> str:
 
     return formula
 
-def process_fret_rewrites():
-    """Process FRET rewrite rules and generate MLTL files."""
+def process_fret_rewrites() -> list[dict]:
+    """Process FRET rewrite rules into rewrites.json-style rule objects."""
     processed_rules = []
 
-    for i, rule in enumerate(FRETFutureTimeSimplifications):
-        assumptions = ' & '.join(normalize_formula(a) for a in rule[:-2])
+    for rule in FRETFutureTimeSimplifications:
+        constraints = [normalize_formula(a) for a in rule[:-2]]
         lhs = normalize_formula(rule[-2])
         rhs = normalize_formula(rule[-1])
-            
-        with open(MLTLDIR / f"fret_{i}.equiv", "w") as f:
-            if assumptions:
-                f.write(f"c: {assumptions}\n")
-            f.write(f"{lhs}\n{rhs}\n")
 
-        processed_rules.append((lhs, rhs))
+        processed_rules.append({
+            "pre": lhs,
+            "post": rhs,
+            "constraints": constraints,
+            "birewrite": False,
+        })
 
-    print('\n\n'.join([f"{i+1}: {lhs} <=> {rhs}" for i, (lhs, rhs) in enumerate(processed_rules)]))
+    return processed_rules
 
-def main():
-    """Main function that generates FRET rewrite files and tests them."""
+
+def main(argv: list[str] | None = None) -> int:
+    """Normalize FRET rewrite rules and write them as JSON."""
+    args = argv if argv is not None else sys.argv[1:]
+    output_path = Path(args[0]) if args else DEFAULT_OUTPUT
+
     print("Processing FRET rewrite rules...")
-    process_fret_rewrites()
-    print(f"Generated {len(FRETFutureTimeSimplifications)} MLTL files in {MLTLDIR}")
+    rules = process_fret_rewrites()
+    data = {"fret": rules}
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+        f.write("\n")
+
+    for i, rule in enumerate(rules):
+        constraints = rule["constraints"]
+        prefix = f" [{', '.join(constraints)}]" if constraints else ""
+        print(f"{i}: {rule['pre']} <=> {rule['post']}{prefix}")
+
+    print(f"\nGenerated {len(rules)} rules in {output_path}")
+    return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -1,13 +1,21 @@
 Directory for scripts related to proving correctness of FRET rewrite rules.
 
-- `normalize_fret_rewrites.py`: Normalizes the FRET rewrite rules to a standard format.
+- `normalize_fret_rewrites.py`: Normalizes the FRET rewrite rules into a
+  `rewrites.json`-style JSON file (`fret_rewrites.json` by default).
+- `ground_rewrites.py`: Ensures every rule's `pre` term is grounded — compound
+  interval bounds (`+`/`-`) are replaced with fresh bound variables, with the
+  defining relations moved into `post` or `constraints`.
+- `generate_equiv_files.py` / `generate_egglog.py` (in `../rewrites/`): Turn
+  grounded JSON into `.equiv` files and egglog rewrite files.
 - `process_equiv_files.sh`: Processes the FRET rewrite rules and generates SMT2 files.
 - `prove.sh`: Runs the SMT2 files through cvc5 and z3 in parallel. Assumes that `cvc5` and `z3` are
   in your PATH. Parameters like timeout and number of parallel processes for cvc5 can be set in the
   script. `UNSAT` means a rule is proven, `SAT` means it fails.
 
-To prove the rules, run each script in succession:
+To regenerate the grounded JSON, `.equiv` files, and `fret.egg`:
 
     $ python3 normalize_fret_rewrites.py
-    $ ./process_equiv_files.sh
-    $ ./prove.sh
+    $ python3 ground_rewrites.py fret_rewrites.json fret_rewrites_grounded.json
+    $ python3 ../rewrites/generate_equiv_files.py fret_rewrites_grounded.json equiv/
+    $ PYTHONPATH=../.. python3 ../rewrites/generate_egglog.py \
+        equiv/ fret_rewrites_grounded.json /tmp/fret_egg_gen/
