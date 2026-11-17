@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script to run cvc5 and z3 in parallel on all SMT2 files with timeout and portfolio settings
-# Usage: ./run.sh
+# Usage: ./prove.sh
 
 set -e
 
@@ -14,6 +14,19 @@ RESULTS_FILE="results.txt"
 SUMMARY_FILE="summary.txt"
 CACHE_FILE="unsat_cache.txt"
 SAT_CACHE_FILE="sat_cache.txt"
+
+# Check dependencies before writing results or starting solver jobs.
+if ! command -v timeout >/dev/null 2>&1; then
+    echo "Error: required command 'timeout' is not in PATH" >&2
+    exit 1
+fi
+
+for solver in "${CVC5_CMD%% *}" "${Z3_CMD%% *}"; do
+    if ! command -v "$solver" >/dev/null 2>&1; then
+        echo "Error: required solver '$solver' is not in PATH" >&2
+        exit 1
+    fi
+done
 
 # Colors for output
 RED='\033[0;31m'

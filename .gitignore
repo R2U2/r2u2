@@ -301,3 +301,7 @@ r2u2env/
 
 # Apptainer images
 *.sif
+
+# equivalence checking generated files
+*.equiv
+*.smt2

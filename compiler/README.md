@@ -5,7 +5,8 @@ Documentation can be found [here](https://r2u2.github.io/r2u2/_collections/c2po_
 
 ## Requirements
 
-C2PO requires Python 3.9 or newer.
+C2PO officially supports Python 3.10 or newer. Python 3.9 should work, but is not
+officially supported.
 
 To enable equality saturation, install [Rust](https://www.rust-lang.org/tools/install), then run
 `scripts/setup_egglog.sh`.
