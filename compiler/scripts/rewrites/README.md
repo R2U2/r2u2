@@ -1,24 +1,46 @@
-# EQSat Rewrite Scripts
+# EQSat Rewrite Pipeline
 
-Files for proving correctness of rewrite rules and generating egglog files for use in equality
-saturation.
+Scripts for proving correctness of MLTL rewrite rules and generating egglog
+files for equality saturation.
 
-- `complete.json`/`incomplete.json` contain rewrite rules in a standard format.
-- `generate_equiv_files.py` generates .equiv files from rewrites.json.
-- `generate_egglog.py` generates egglog files from .equiv files.
-- `generate_smt2_equiv.sh` generates SMT2 files from .equiv files.
+## Files
 
-If you edit `rewrites.json`, generate new .equiv files (in `equiv/`):
+- `rewrites.json` — rewrite schemas in the standard JSON format
+- `prepare.sh` — shared dependency: `rewrites.json` → `equiv/`
+- `prove_rewrites.sh` — prepare → smt2 → prove
+- `generate_egg.sh` — prepare → egglog rewrite files
+- `generate_latex_table.py` — optional LaTeX table export from rewrite JSON
+- `equiv/`, `smt2/` — generated proof obligations
 
-    python3 generate_equiv_files.py rewrites.json equiv/
+Shared generators live in the parent `scripts/` directory
+(`generate_equiv_files.py`, `generate_smt2_equiv.sh`, `prove.sh`,
+`generate_egglog.py`).
 
-Then generate the corresponding egglog and place it where c2po can find it:
+## Run
 
-    python3 generate_egglog.py equiv rewrites.json ../../c2po/egglog
+Requires `cvc5` and `z3` on `PATH` for the prove step.
 
-Finally, re-generate the SMT2 encoding for the equivalence proofs:
+```bash
+./prepare.sh                              # refresh equiv/
+./prove_rewrites.sh [timeout] [jobs]      # defaults: 60s, 8 jobs
+./generate_egg.sh                         # write temporal/const_folding/extended.egg
+```
 
-    ./generate_smt2_equiv.sh equiv/ smt2/ ../../c2po.py
+`prove_rewrites.sh` and `generate_egg.sh` each call `prepare.sh` first, so either
+can be run alone after editing `rewrites.json`.
 
-The proof obligations can be dispatched via the `compiler/scripts/prove.sh` script for parallel
-solving (assuming cvc5 and z3 are installed).
+Outputs land under `../../c2po/egglog/rewrites/`. Each generated `.smt2` file
+encodes the *negation* of a rewrite's equivalence, so `UNSAT` means the rewrite
+is valid.
+
+## Manual steps
+
+If you edit `rewrites.json`:
+
+```bash
+python3 ../generate_equiv_files.py rewrites.json equiv/
+../generate_smt2_equiv.sh equiv/ smt2/ ../../c2po.py
+../prove.sh smt2/
+PYTHONPATH=../.. python3 ../generate_egglog.py \
+  equiv/ rewrites.json ../../c2po/egglog/rewrites
+```

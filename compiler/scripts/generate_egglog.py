@@ -19,7 +19,7 @@ from typing import Optional, cast, Union
 
 # Add the compiler directory to the path so we can import c2po modules
 script_dir = Path(__file__).parent
-compiler_dir = script_dir.parent.parent
+compiler_dir = script_dir.parent
 sys.path.insert(0, str(compiler_dir))
 
 # Import after path setup
@@ -147,8 +147,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s equiv/ rewrites.json output.egg
-  %(prog)s /path/to/equiv/ /path/to/rewrites.json /path/to/output.egg
+  %(prog)s equiv/ rewrites.json ../../c2po/egglog/rewrites
+  %(prog)s equiv/ fret_rewrites_grounded.json ../../c2po/egglog/rewrites --bundle fret.egg
         """
     )
     parser.add_argument(
@@ -166,6 +166,14 @@ Examples:
         type=Path,
         help="Output directory to write the .egg files to"
     )
+    parser.add_argument(
+        "--bundle",
+        type=str,
+        default=None,
+        metavar="FILE",
+        help="Write all rules into a single FILE in the output directory "
+             "(e.g. fret.egg) instead of temporal/const_folding/extended.egg",
+    )
     
     args = parser.parse_args()
     
@@ -173,6 +181,7 @@ Examples:
     equiv_dir = args.equiv_dir
     rewrites_json = args.json_file
     output_directory = args.output_directory
+    bundle_name = args.bundle
     
     # Check if paths exist
     if not equiv_dir.exists() or not equiv_dir.is_dir():
@@ -334,46 +343,43 @@ Examples:
             traceback.print_exc()
             error_count += 1
     
-    # Write all rules to a single file
-    print()
-    print(f"Writing {len(temporal_rules_content)} temporal rules to {output_directory / 'temporal.egg'}...", end=" ", flush=True)
-    
-    try:
-        with open(output_directory / "temporal.egg", 'w') as f:
-            # Write all rules
-            for rule_content in temporal_rules_content:
-                f.write(rule_content)
-                f.write("\n")
-        
-        print("✓")
-    except Exception as e:
-        print(f"✗ Error writing output file: {e}")
-        error_count += 1
+    def write_rules(path: Path, rules: list[str], label: str) -> None:
+        nonlocal error_count
+        print(f"Writing {len(rules)} {label} to {path}...", end=" ", flush=True)
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                for rule_content in rules:
+                    f.write(rule_content)
+                    f.write("\n")
+            print("✓")
+        except Exception as e:
+            print(f"✗ Error writing output file: {e}")
+            error_count += 1
 
-    print(f"Writing {len(const_folding_rules_content)} const-folding rules to {output_directory / 'const_folding.egg'}...", end=" ", flush=True)
-    try:
-        with open(output_directory / "const_folding.egg", 'w') as f:
-            # Write all rules
-            for rule_content in const_folding_rules_content:
-                f.write(rule_content)
-                f.write("\n")
-        
-        print("✓")
-    except Exception as e:
-        print(f"✗ Error writing output file: {e}")
-        error_count += 1
     print()
-    print(f"Writing {len(extended_operators_rules_content)} extended operator rules to {output_directory / 'extended.egg'}...", end=" ", flush=True)
-    try:
-        with open(output_directory / "extended.egg", 'w') as f:
-            # Write all rules
-            for rule_content in extended_operators_rules_content:
-                f.write(rule_content)
-                f.write("\n")
-    except Exception as e:
-        print(f"✗ Error writing output file: {e}")
-        error_count += 1
-    print("✓")
+    if bundle_name:
+        bundled = (
+            temporal_rules_content
+            + const_folding_rules_content
+            + extended_operators_rules_content
+        )
+        write_rules(output_directory / bundle_name, bundled, "bundled rules")
+    else:
+        write_rules(
+            output_directory / "temporal.egg",
+            temporal_rules_content,
+            "temporal rules",
+        )
+        write_rules(
+            output_directory / "const_folding.egg",
+            const_folding_rules_content,
+            "const-folding rules",
+        )
+        write_rules(
+            output_directory / "extended.egg",
+            extended_operators_rules_content,
+            "extended operator rules",
+        )
     print()
     print(f"Summary: {success_count} rules processed, {error_count} failed")
     print(f"Output written to: {output_directory}")

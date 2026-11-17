@@ -75,6 +75,8 @@ FRETFutureTimeSimplifications: list[list[str]] = [
     ['__p => (__q & (__r => ((__p & __s) | __t)))', '__p => (__q & (__r => (__s | __t)))'], 
     ['(__p & __q) => ((__q & __r) | __s)', '(__p & __q) => (__r | __s)'],
     ['(__p & __r) => ((__p & __q) | __s)', '(__p & __r) => (__q | __s)'],
+    ['(! __p) => __q', '__p | __q'], # New rule found by EQSat
+    ['! (__p & (! __q))', '__p => __q'], # New rule found by EQSat
 
     # Simplifications to reduce Next with temporal interval:
     # (Note: the first two may not seem like simplifications but they make
@@ -213,18 +215,19 @@ FRETFutureTimeSimplifications: list[list[str]] = [
     
     # Simplifications reducing interval bounds:
     ['__h <= M', '(G[__l,__h] __p) | (__q V __p)', '(G[__l,__h] __p) | (__q V[<= __h] __p)'],
-    ['(__p U __q) & (F[<= __h] __q)', '__p U[<= __h] __q'],
+    ['__h <= M', '(__p U __q) & (F[<= __h] __q)', '__p U[<= __h] __q'],
     ['(G[<= __h] (! __p)) & (F[<= __h+1] __p)', '(G[<= __h] (! __p)) & (F[= __h+1] __p)'],
     ['(F[<= __h] __p) | (G[<= __h+1] (! __p))', '(F[<= __h] __p) | (G[= __h+1] (! __p))'],
     ['(__r V[<= __h] (! __q)) & ((F[<= __h+1] __q) | (F[< __h+1] __r))', '(__r V[<= __h] (! __q)) & ((F[= __h+1] __q) | (F[< __h+1] __r))'],
     ['__h <= M', '(G[__l,__h] __p) | G __p', 'G[__l,__h] __p'],
+    ['(F[<= __h] __p) | (F[< __h] __q)', 'F[< __h] ((F[0,1] __p) | __q)'], # New rule found by EQSat
     
     # Misc. simplifications reducing temporal operators:
     ['!(__p U __q)', '(! __p) V (! __q)'],
     ['!(F __p)', 'G (! __p)'],
     ['((__p & __q) | __r) V __p', '(__q | __r) V __p'],
     ['((__p | __q) V (__r | __s)) | (__q V __r)', '((__p | __q) V (__r | __s))'],
-    ['((__p | __q) V !(__r & __s)) | (__q V (! __r))', '((__p | __q) V !(__r & __s))'],
+    ['((__p | __q) V (__r => __s)) | (__q V (! __r))', '((__p | __q) V (__r => __s))'],
     ['((TRUE) U (__p)) | (G (! __p))', 'TRUE'], # modified -- rewrote '((! __p) U __p)' as 'TRUE'
     
     # Simplifications reducing Release to an external Globally:
