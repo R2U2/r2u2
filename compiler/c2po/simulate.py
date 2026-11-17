@@ -7,15 +7,15 @@ from c2po import cpt, types, log, command
 
 
 class SimulateMode(enum.Enum):
-    SAT = "sat"
-    UNSAT = "unsat"
+    SATISFY = "satisfy"
+    VIOLATE = "violate"
     RANDOM = "random"
 
 
 def _import_z3() -> Any:
     """Import the z3 Python package, raising a clear error if it is not installed."""
     try:
-        import z3
+        import z3  # type: ignore
     except ImportError as exc:
         raise ImportError(
             "z3 Python package not found; install with 'pip install z3-solver'"
@@ -189,14 +189,16 @@ def cpt_to_z3(
         )
 
 
-def simulate_sat(program: cpt.Program, context: cpt.Context, k: int, sat: bool) -> list[list[str]]:
+def simulate_sat(
+    program: cpt.Program, context: cpt.Context, length: int, sat: bool
+) -> list[list[str]]:
     """
     Simulate a CPT program, returning a satisfying trace if `sat` is True. The approach is naive:
     - Generate an uninterpreted function for each signal.
     - Create a Z3 expression for each spec, which is a function that takes an integer and returns a
       Z3 expression representing the value of the spec at that time step.
-    - For each time step in 0..k:
-        - Add the constraints for the spec at k.
+    - For each time step in 0..length:
+        - Add the constraints for the spec at that time step.
         - Check satisfiability.
         - If unsat, pop the constraints and continue.
         - If sat, continue
@@ -227,7 +229,7 @@ def simulate_sat(program: cpt.Program, context: cpt.Context, k: int, sat: bool) 
         z3_exprs.append(cpt_to_z3(unrolled, context, z3_vars))
 
     s = z3.Solver()
-    for i in range(k):
+    for i in range(length):
         log.debug(1, f"k = {i}")
         s.push()
 
@@ -247,7 +249,7 @@ def simulate_sat(program: cpt.Program, context: cpt.Context, k: int, sat: bool) 
             continue
 
     header = list(z3_vars)
-    if k <= 0:
+    if length <= 0:
         return [header]
 
     if s.check() != z3.sat:
@@ -256,7 +258,7 @@ def simulate_sat(program: cpt.Program, context: cpt.Context, k: int, sat: bool) 
 
     model = s.model()
     trace = [header]
-    for i in range(k):
+    for i in range(length):
         trace.append(
             [
                 _format_z3_value(
@@ -270,11 +272,13 @@ def simulate_sat(program: cpt.Program, context: cpt.Context, k: int, sat: bool) 
     return trace
 
 
-def simulate_random(program: cpt.Program, context: cpt.Context, k: int) -> list[list[str]]:
+def simulate_random(
+    program: cpt.Program, context: cpt.Context, length: int
+) -> list[list[str]]:
     """Simulate a CPT program with random signal values."""
     header = list(context.signals)
     trace = [header]
-    for _ in range(max(k, 0)):
+    for _ in range(max(length, 0)):
         row = []
         for _, typ in context.signals.items():
             if types.is_bool_type(typ):
@@ -290,22 +294,22 @@ def simulate_random(program: cpt.Program, context: cpt.Context, k: int) -> list[
 
 
 def simulate(
-    program: cpt.Program, context: cpt.Context, k: int, mode: SimulateMode
+    program: cpt.Program, context: cpt.Context, length: int, mode: SimulateMode
 ) -> list[list[str]]:
     """
     Simulate a CPT program.
 
     FIXME: Shall we consider a way to model the system
     """
-    if k < 0:
-        k = program.max_wpd + 1
+    if length < 0:
+        length = program.max_wpd + 1
 
-    if mode == SimulateMode.SAT:
-        return simulate_sat(program, context, k, True)
-    elif mode == SimulateMode.UNSAT:
-        return simulate_sat(program, context, k, False)
+    if mode == SimulateMode.SATISFY:
+        return simulate_sat(program, context, length, True)
+    elif mode == SimulateMode.VIOLATE:
+        return simulate_sat(program, context, length, False)
     elif mode == SimulateMode.RANDOM:
-        return simulate_random(program, context, k)
+        return simulate_random(program, context, length)
     else:
         raise ValueError(f"Invalid simulate mode: {mode}")
 
@@ -326,8 +330,8 @@ def simulate_command(
     Simulate a program and produce a CSV trace.
 
     `options` is a dictionary of options that must contain the following keys:
-    - `mode`: Simulation mode (`sat`, `unsat`, or `random`)
-    - `k`: Trace length. If negative, uses the maximum worst-case propagation delay plus one.
+    - `mode`: Simulation mode (`satisfy`, `violate`, or `random`)
+    - `len`: Trace length. If negative, uses the maximum worst-case propagation delay plus one.
     - `output`: Optional path to write the trace file
     - `print`: Whether to print the trace to the console
     """
@@ -337,12 +341,12 @@ def simulate_command(
         log.error(f"invalid simulate mode: {options['mode']}")
         return command.ReturnCode.ERROR
 
-    k = options["k"]
+    length = options["len"]
     output_file: Optional[str] = options["output"]
     print_trace: bool = options["print"]
 
     try:
-        trace = simulate(program, context, k, mode)
+        trace = simulate(program, context, length, mode)
     except ImportError as e:
         log.error(str(e))
         return command.ReturnCode.ERROR
@@ -368,18 +372,18 @@ def simulate_command(
 
 simulate_cmd = command.Command(
     name="simulate",
-    description="Simulate a program and generate a CSV trace (sat/unsat modes require the z3 Python package)",
+    description="Simulate a program and generate a CSV trace (satisfy/violate modes require the z3 Python package)",
     options=[
         {
             "name": "mode",
-            "description": "Simulation mode: sat generates a satisfying trace, unsat a violating trace, random unconstrained values",
+            "description": "Simulation mode: satisfy generates a satisfying trace, violate a violating trace, random unconstrained values",
             "required": True,
             "type": str,
             "default": None,
             "choices": [member.value for member in SimulateMode],
         },
         {
-            "name": "k",
+            "name": "len",
             "description": "Trace length. If negative, uses the maximum worst-case propagation delay plus one",
             "required": False,
             "type": int,

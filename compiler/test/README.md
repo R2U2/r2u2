@@ -37,3 +37,7 @@ installed in `compiler/deps`):
 
     export PATH=$PATH:/path/to/r2u2/compiler/deps/z3/bin
     export PATH=$PATH:/path/to/r2u2/compiler/deps/egglog/target/release
+
+The `simulate` tests also require the Z3 Python package:
+
+    pip install z3-solver

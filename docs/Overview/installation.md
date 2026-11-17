@@ -14,6 +14,7 @@ Usage:
 - Python >= 9
 - `pip install typing-extensions`
 - (Optional) To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3)
+- (Optional) To enable simulation (`simulate satisfy` / `simulate violate`), `pip install z3-solver`
 
 ## R2U2 (C Version)
 
