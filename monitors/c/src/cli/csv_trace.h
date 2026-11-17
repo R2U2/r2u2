@@ -7,6 +7,8 @@
 typedef struct {
   FILE* input_file;
   char in_buf[BUFSIZ];
+  // Zero means the trace had no header; preserve legacy headerless parsing.
+  size_t expected_columns;
 } r2u2_csv_reader_t;
 
 /// @brief      Sets the R2U2 monitor's signal_vector (or atomic_vector if booleanizer is not enabled)
