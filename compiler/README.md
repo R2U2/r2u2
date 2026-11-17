@@ -5,7 +5,8 @@ Documentation can be found [here](https://r2u2.github.io/r2u2/_collections/c2po_
 
 ## Requirements
 
-C2PO requires Python 3.9 or newer.
+C2PO officially supports Python 3.10 or newer. Python 3.9 should work, but is not
+officially supported.
 
 To enable equality saturation, install [Rust](https://www.rust-lang.org/tools/install), then run
 `scripts/setup_egglog.sh`.
@@ -14,6 +15,9 @@ To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3).
 systems, this can be done via `sudo apt-get install z3`. You can use any SMTLIB2-compatible solver by
 setting the executable path via the `--smt-solver` option. For example, using
 [Yices2](https://yices.csl.sri.com/) instead, you can set `--smt-solver path/to/yices-smt2`.
+
+To enable simulation (`simulate satisfy` / `simulate violate`), install the Z3 Python package via 
+`pip install z3-solver` (`simulate random` does not require Z3).
 
 ## Usage
 
@@ -98,7 +102,8 @@ See `../examples/cav.csv` for an example.
 ## Advanced Features
 
 These features are optional. Satisfiability and equivalence checking need an SMTLIB2 solver
-(typically Z3); equality saturation needs egglog. See [Requirements](#requirements).
+(typically Z3); simulation (`satisfy` / `violate`) needs the Z3 Python package (`z3-solver`);
+equality saturation needs egglog. See [Requirements](#requirements).
 
 ### Satisfiability Checking
 
@@ -128,6 +133,19 @@ computed propagation delay. `write_smt_encoding` dumps the SMT-LIB2 encoding wit
 solver.
 
 See `test/sat/` for more examples.
+
+### Simulation
+
+In script or interactive mode, `simulate` generates a CSV signal trace for a desugared program.
+Modes `satisfy` and `violate` use the Z3 Python API and require `pip install z3-solver`; `random`
+does not.
+
+    parse_c2po test/simulate/sat_true.c2po
+    type_check
+    desugar
+    simulate satisfy --len 3
+
+See `test/simulate/` for more examples.
 
 ### Equality Saturation
 
