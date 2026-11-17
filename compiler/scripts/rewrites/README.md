@@ -23,7 +23,7 @@ Requires `cvc5` and `z3` on `PATH` for the prove step.
 ```bash
 ./prepare.sh                              # refresh equiv/
 ./prove_rewrites.sh [timeout] [jobs]      # defaults: 60s, 8 jobs
-./generate_egg.sh                         # write temporal/const_folding/extended.egg
+./generate_egg.sh                         # write temporal/const_folding.egg
 ```
 
 `prove_rewrites.sh` and `generate_egg.sh` each call `prepare.sh` first, so either

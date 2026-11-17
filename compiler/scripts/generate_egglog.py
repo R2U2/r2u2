@@ -172,7 +172,7 @@ Examples:
         default=None,
         metavar="FILE",
         help="Write all rules into a single FILE in the output directory "
-             "(e.g. fret.egg) instead of temporal/const_folding/extended.egg",
+             "(e.g. fret.egg) instead of temporal/const_folding.egg",
     )
     
     args = parser.parse_args()
@@ -226,7 +226,6 @@ Examples:
     error_count = 0
     temporal_rules_content = []
     const_folding_rules_content = []
-    extended_operators_rules_content = []
 
     # Process each .equiv file
     for equiv_file in equiv_files:
@@ -278,12 +277,6 @@ Examples:
             pre_expr = expr_to_egglog(pre_spec.get_expr())
             post_expr = expr_to_egglog(post_spec.get_expr())
 
-            has_extended_operators = False
-            for expr in cpt.postorder(pre_spec.get_expr(), context):
-                if isinstance(expr, cpt.Operator) and expr.operator.is_extended_operator():
-                    has_extended_operators = True
-                    break
-
             is_subsumed = False
             for expr in cpt.postorder(pre_spec.get_expr(), context):
                 if repr(expr) == repr(post_spec.get_expr()):
@@ -319,16 +312,12 @@ Examples:
             if is_subsumed:
                 rule_content += "  :subsume\n"
 
-            # If the post expression is a constant or the rule is marked for const-folding, use the const-folding ruleset
-            # If we do not, the performance of egglog is terrible. We also separate extended operator rules into their own files.
+            # Const-folding ruleset for constant posts / marked rules; everything
+            # else (including extended operators) goes in temporal.egg.
             if "Bool" in post_expr or is_const_folding:
                 rule_content += "  :ruleset const-folding\n"
                 rule_content += ")\n"
                 const_folding_rules_content.append(rule_content)
-            elif has_extended_operators:
-                rule_content += "  :ruleset mltl-rewrites\n"
-                rule_content += ")\n"
-                extended_operators_rules_content.append(rule_content)
             else:
                 rule_content += "  :ruleset mltl-rewrites\n"
                 rule_content += ")\n"
@@ -358,11 +347,7 @@ Examples:
 
     print()
     if bundle_name:
-        bundled = (
-            temporal_rules_content
-            + const_folding_rules_content
-            + extended_operators_rules_content
-        )
+        bundled = temporal_rules_content + const_folding_rules_content
         write_rules(output_directory / bundle_name, bundled, "bundled rules")
     else:
         write_rules(
@@ -374,11 +359,6 @@ Examples:
             output_directory / "const_folding.egg",
             const_folding_rules_content,
             "const-folding rules",
-        )
-        write_rules(
-            output_directory / "extended.egg",
-            extended_operators_rules_content,
-            "extended operator rules",
         )
     print()
     print(f"Summary: {success_count} rules processed, {error_count} failed")
