@@ -326,7 +326,7 @@ def cli(
                   f"--{'no-' if not enable_eqsat_associative else ''}associative " \
                   f"--{'no-' if not enable_eqsat_commutative else ''}commutative " \
                   f"--{'no-' if not enable_eqsat_multi_arity else ''}multi-arity " \
-                  f"--{'no-' if not enable_eqsat_temporal else ''}temporal" \
+                  f"--{'no-' if not enable_eqsat_temporal else ''}temporal " \
                   f"{f'--egglog-bin {egglog_path}' if egglog_path else ''} " \
                   f"{f'--smt-solver-path {smt_solver_path}' if smt_solver_path else ''}"
         script_lines.append(cmd)

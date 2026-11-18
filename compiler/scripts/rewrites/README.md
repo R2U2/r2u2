@@ -1,24 +1,35 @@
-# EQSat Rewrite Scripts
+# Rewrite Proofs and Egglog Generation
 
-Files for proving correctness of rewrite rules and generating egglog files for use in equality
-saturation.
+Scripts for proving MLTL rewrite rules correct and generating egglog files for
+C2PO equality saturation.
 
-- `complete.json`/`incomplete.json` contain rewrite rules in a standard format.
-- `generate_equiv_files.py` generates .equiv files from rewrites.json.
-- `generate_egglog.py` generates egglog files from .equiv files.
-- `generate_smt2_equiv.sh` generates SMT2 files from .equiv files.
+## Files
 
-If you edit `rewrites.json`, generate new .equiv files (in `equiv/`):
+- `rewrites.json` — rewrite schemas (includes former FRET rules under `"fret"`)
+- `prove_rewrites.sh` — rewrites.json → equiv → smt2 → prove
+- `generate_egg.sh` — rewrites.json → equiv → `../../c2po/egglog/rewrites/{temporal,const_folding}.egg`
+- `generate_equiv_files.py` / `generate_smt2_equiv.sh` / `prove.sh` / `generate_egglog.py` — pipeline tools
+- `generate_latex_table.py` — optional LaTeX table export
+- `equiv/`, `smt2/` — generated proof obligations
 
-    python3 generate_equiv_files.py rewrites.json equiv/
+## Run
 
-Then generate the corresponding egglog and place it where c2po can find it:
+Requires `cvc5` and `z3` on `PATH` for the prove step.
 
-    python3 generate_egglog.py equiv rewrites.json ../../c2po/egglog
+```bash
+./prove_rewrites.sh [timeout] [jobs]      # defaults: 60s, 8 jobs
+./generate_egg.sh                         # write temporal/const_folding.egg
+```
 
-Finally, re-generate the SMT2 encoding for the equivalence proofs:
+Each generated `.smt2` file encodes the *negation* of a rewrite's equivalence,
+so `UNSAT` means the rewrite is valid.
 
-    ./generate_smt2_equiv.sh equiv/ smt2/ ../../c2po.py
+## Manual steps
 
-The proof obligations can be dispatched via the `compiler/scripts/prove.sh` script for parallel
-solving (assuming cvc5 and z3 are installed).
+```bash
+python3 generate_equiv_files.py rewrites.json equiv/
+./generate_smt2_equiv.sh equiv/ smt2/ ../../c2po.py
+./prove.sh smt2/
+PYTHONPATH=../.. python3 generate_egglog.py \
+  equiv/ rewrites.json ../../c2po/egglog/rewrites
+```

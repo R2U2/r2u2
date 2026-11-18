@@ -5,7 +5,7 @@ compute_atomics
 compute_scq_sizes
 print_stats "%scq "
 
-optimize_eqsat --check-equiv
+optimize_eqsat --check-equiv --no-commutative
 
 compute_scq_sizes
 print_stats "%scq\n"

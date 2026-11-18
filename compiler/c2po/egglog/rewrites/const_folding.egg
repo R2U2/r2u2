@@ -84,3 +84,37 @@
   :ruleset const-folding
 )
 
+(rewrite
+  (Or2 (Bool true) a0)
+  (Bool true)
+  :subsume
+  :ruleset const-folding
+)
+
+(rewrite
+  (And2 (Bool false) a0)
+  (Bool false)
+  :subsume
+  :ruleset const-folding
+)
+
+(rewrite
+  (Implies (Bool false) a0)
+  (Bool true)
+  :ruleset const-folding
+)
+
+(rewrite
+  (Implies a0 (Bool true))
+  (Bool true)
+  :subsume
+  :ruleset const-folding
+)
+
+(rewrite
+  (Or2 (Until (Interval 0 M) (Bool true) a0) (Global (Interval 0 M) (Not a0)))
+  (Bool true)
+  :subsume
+  :ruleset const-folding
+)
+

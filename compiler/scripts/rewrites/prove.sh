@@ -1,32 +1,65 @@
 #!/bin/bash
 
 # Script to run cvc5 and z3 in parallel on all SMT2 files with timeout and portfolio settings
-# Usage: ./prove.sh
+# Usage: ./prove.sh <smt2_directory> [timeout_seconds] [portfolio_jobs]
 
 set -e
+set +m  # Disable job control messages to suppress termination notices
 
-# Configuration
-SMT2_DIR="smt2/"
-TIMEOUT_SECONDS=5
-CVC5_CMD="cvc5 --use-portfolio --portfolio-jobs 24"
-Z3_CMD="z3"
-RESULTS_FILE="results.txt"
-SUMMARY_FILE="summary.txt"
-CACHE_FILE="unsat_cache.txt"
-SAT_CACHE_FILE="sat_cache.txt"
-
-# Check dependencies before writing results or starting solver jobs.
-if ! command -v timeout >/dev/null 2>&1; then
-    echo "Error: required command 'timeout' is not in PATH" >&2
+# Check if directory argument is provided
+if [ $# -eq 0 ]; then
+    echo "Error: Directory argument required"
+    echo "Usage: $0 <smt2_directory> [timeout_seconds] [portfolio_jobs]"
     exit 1
 fi
 
-for solver in "${CVC5_CMD%% *}" "${Z3_CMD%% *}"; do
-    if ! command -v "$solver" >/dev/null 2>&1; then
-        echo "Error: required solver '$solver' is not in PATH" >&2
-        exit 1
-    fi
-done
+# Configuration
+SMT2_DIR="$1"
+TIMEOUT_SECONDS="${2:-60}"  # Use second argument if provided, otherwise default to 60
+PORTFOLIO_JOBS="${3:-8}"    # Use third argument if provided, otherwise default to 8
+
+# Validate timeout is a positive number
+if ! [[ "$TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || [ "$TIMEOUT_SECONDS" -le 0 ]; then
+    echo "Error: Timeout must be a positive integer"
+    echo "Usage: $0 <smt2_directory> [timeout_seconds] [portfolio_jobs]"
+    exit 1
+fi
+
+# Validate portfolio-jobs is a positive number
+if ! [[ "$PORTFOLIO_JOBS" =~ ^[0-9]+$ ]] || [ "$PORTFOLIO_JOBS" -le 0 ]; then
+    echo "Error: Portfolio jobs must be a positive integer"
+    echo "Usage: $0 <smt2_directory> [timeout_seconds] [portfolio_jobs]"
+    exit 1
+fi
+
+CVC5_CMD="cvc5 --use-portfolio --portfolio-jobs $PORTFOLIO_JOBS"
+Z3_CMD="z3"
+
+# Ensure directory ends with / for consistency
+if [ "${SMT2_DIR: -1}" != "/" ]; then
+    SMT2_DIR="${SMT2_DIR}/"
+fi
+
+# Validate that directory exists
+if [ ! -d "$SMT2_DIR" ]; then
+    echo "Error: Directory '$SMT2_DIR' does not exist"
+    exit 1
+fi
+
+# Sanitize directory name for use in cache file names
+# Replace / with _ and remove trailing _
+safe_dir_name=$(echo "$SMT2_DIR" | tr '/' '_' | sed 's/_$//' | sed 's/^_//')
+
+# Create output directory for all files (cache, results, summary)
+OUTPUT_DIR="output_${safe_dir_name}/"
+mkdir -p "$OUTPUT_DIR"
+
+# Create directory-specific cache and result files
+RESULTS_FILE="${OUTPUT_DIR}results_${safe_dir_name}.txt"
+SUMMARY_FILE="${OUTPUT_DIR}summary_${safe_dir_name}.txt"
+CACHE_FILE="${OUTPUT_DIR}unsat_cache_${safe_dir_name}.txt"
+SAT_CACHE_FILE="${OUTPUT_DIR}sat_cache_${safe_dir_name}.txt"
+TIMESTAMP_CACHE_FILE="${OUTPUT_DIR}timestamp_cache_${safe_dir_name}.txt"
 
 # Colors for output
 RED='\033[0;31m'
@@ -54,6 +87,70 @@ unknown_files=()
 cached_sat_files=()
 cached_unsat_files=()
 
+# Snapshot PGIDs of currently running cvc5 processes (one per line).
+cvc5_pgids_snapshot() {
+    pgrep -x cvc5 2>/dev/null | while read -r p; do
+        ps -o pgid= -p "$p" 2>/dev/null | tr -d ' '
+    done | sort -u
+}
+
+# Single-shot: if a new cvc5 portfolio process group has appeared, print its PGID.
+# cvc5 --use-portfolio forks workers into a process group, then the parent can
+# exit while those workers keep running — we must track that PGID to reap them.
+find_new_cvc5_pgid() {
+    local before="$1"
+    local pg=""
+    local p
+    for p in $(pgrep -x cvc5 2>/dev/null); do
+        pg=$(ps -o pgid= -p "$p" 2>/dev/null | tr -d ' ')
+        if [ -n "$pg" ] && [ "$pg" -gt 1 ] 2>/dev/null; then
+            if ! printf '%s\n' "$before" | grep -qx "$pg"; then
+                echo "$pg"
+                return 0
+            fi
+        fi
+    done
+    return 0
+}
+
+# Kill a process group (portfolio workers) and optional launcher PID.
+# Use KILL for the portfolio group: workers often outlive the parent after the
+# answer is already written, and TERM only appends "interrupted" noise to stdout.
+kill_process_group() {
+    local pgid=$1
+    local pid=$2
+    if [ -n "$pgid" ] && [ "$pgid" -gt 1 ] 2>/dev/null; then
+        kill -KILL -- "-$pgid" 2>/dev/null || true
+    fi
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+        # Kill children of the launcher first (timeout/z3), then the launcher.
+        local child
+        for child in $(pgrep -P "$pid" 2>/dev/null); do
+            kill -KILL "$child" 2>/dev/null || true
+        done
+        kill -KILL "$pid" 2>/dev/null || true
+    fi
+}
+
+# Cleanup function to kill all cvc5 and z3 processes
+cleanup_processes() {
+    # Kill all cvc5 processes (suppress errors)
+    pkill -9 cvc5 2>/dev/null || true
+    
+    # Kill all z3 processes (suppress errors)
+    pkill -9 z3 2>/dev/null || true
+    
+    # Wait briefly for processes to terminate
+    sleep 0.5 2>/dev/null || sleep 0.5
+    
+    # Double-check and force kill any remaining processes
+    pgrep -f "cvc5" >/dev/null 2>&1 && pkill -9 -f "cvc5" 2>/dev/null || true
+    pgrep -f "^z3 " >/dev/null 2>&1 && pkill -9 -f "^z3 " 2>/dev/null || true
+}
+
+# Set up trap to cleanup on exit (normal, error, interrupt, or termination)
+trap cleanup_processes EXIT INT TERM
+
 echo -e "${BLUE}Starting parallel cvc5/z3 benchmark on SMT2 files...${NC}"
 echo "Directory: $SMT2_DIR"
 echo "Timeout: ${TIMEOUT_SECONDS}s per file"
@@ -70,32 +167,105 @@ echo "" >> "$RESULTS_FILE"
 # Ensure cache files exist
 touch "$CACHE_FILE"
 touch "$SAT_CACHE_FILE"
+touch "$TIMESTAMP_CACHE_FILE"
+
+# Function to check if a file has changed since last proof
+# Returns 0 if file has changed or was never proven, 1 if unchanged
+check_file_changed() {
+    local file_path="$1"
+    local filename="$2"
+    
+    # Get current file modification time
+    if [ ! -f "$file_path" ]; then
+        return 0  # File doesn't exist, treat as changed
+    fi
+    
+    # Try GNU stat first: Linux stat -f prints to stdout then fails, corrupting $(...) if listed first.
+    local current_mtime=$(stat -c %Y "$file_path" 2>/dev/null || stat -f %m "$file_path" 2>/dev/null || echo "0")
+    
+    # Get cached timestamp (escape filename for safe regex matching)
+    local escaped_filename=$(printf '%s\n' "$filename" | sed 's/[[\.*^$()+?{|]/\\&/g')
+    local cached_timestamp=$(grep "^${escaped_filename}:" "$TIMESTAMP_CACHE_FILE" 2>/dev/null | cut -d: -f2- | tr -d '[:space:]' || echo "")
+    
+    # If no cached timestamp, file has changed (never proven)
+    if [ -z "$cached_timestamp" ]; then
+        return 0
+    fi
+    
+    # Compare timestamps (using string comparison since they're integers)
+    if [ "$current_mtime" != "$cached_timestamp" ]; then
+        return 0  # File has changed
+    else
+        return 1  # File unchanged
+    fi
+}
+
+# Function to update timestamp cache
+update_timestamp_cache() {
+    local filename="$1"
+    local file_path="$2"
+    
+    # Get current file modification time
+    # Try GNU stat first: Linux stat -f prints to stdout then fails, corrupting $(...) if listed first.
+    local current_mtime=$(stat -c %Y "$file_path" 2>/dev/null || stat -f %m "$file_path" 2>/dev/null || echo "0")
+    
+    # Remove old entry if it exists (escape filename for safe regex matching)
+    local escaped_filename=$(printf '%s\n' "$filename" | sed 's/[[\.*^$()+?{|]/\\&/g')
+    grep -v "^${escaped_filename}:" "$TIMESTAMP_CACHE_FILE" > "${TIMESTAMP_CACHE_FILE}.tmp" 2>/dev/null || true
+    mv "${TIMESTAMP_CACHE_FILE}.tmp" "$TIMESTAMP_CACHE_FILE" 2>/dev/null || true
+    
+    # Add new entry
+    echo "${filename}:${current_mtime}" >> "$TIMESTAMP_CACHE_FILE"
+}
 
 # Process each SMT2 file
+# Save stderr and redirect to suppress job control termination messages
+exec 3>&2  # Save stderr to fd 3
+exec 2>/dev/null  # Redirect stderr to suppress job control messages
 for smt2_file in "$SMT2_DIR"/*.smt2; do
     if [ ! -f "$smt2_file" ]; then
         continue
     fi
     
     filename=$(basename "$smt2_file")
-    # Skip if cached as UNSAT
-    if grep -Fxq "$filename" "$CACHE_FILE"; then
+    exec 2>&3  # Restore stderr for echo commands
+    
+    # Check if file has changed since last proof
+    file_changed=false
+    if check_file_changed "$smt2_file" "$filename"; then
+        file_changed=true
+        # Remove from cache files if it exists (file has changed)
+        if grep -Fxq "$filename" "$CACHE_FILE"; then
+            grep -vFx "$filename" "$CACHE_FILE" > "${CACHE_FILE}.tmp" 2>/dev/null || true
+            mv "${CACHE_FILE}.tmp" "$CACHE_FILE" 2>/dev/null || true
+        fi
+        if grep -Fxq "$filename" "$SAT_CACHE_FILE"; then
+            grep -vFx "$filename" "$SAT_CACHE_FILE" > "${SAT_CACHE_FILE}.tmp" 2>/dev/null || true
+            mv "${SAT_CACHE_FILE}.tmp" "$SAT_CACHE_FILE" 2>/dev/null || true
+        fi
+    fi
+    
+    # Skip if cached as UNSAT and file hasn't changed
+    if [ "$file_changed" = false ] && grep -Fxq "$filename" "$CACHE_FILE"; then
         echo -e "${BLUE}Skipping $filename (cached UNSAT)${NC}"
         cached_unsat_count=$((cached_unsat_count + 1))
         cached_unsat_files+=("$filename")
+        exec 2>/dev/null  # Redirect stderr again
         continue
     fi
     
-    # Skip if cached as SAT
-    if grep -Fxq "$filename" "$SAT_CACHE_FILE"; then
+    # Skip if cached as SAT and file hasn't changed
+    if [ "$file_changed" = false ] && grep -Fxq "$filename" "$SAT_CACHE_FILE"; then
         echo -e "${BLUE}Skipping $filename (cached SAT)${NC}"
         cached_sat_count=$((cached_sat_count + 1))
         cached_sat_files+=("$filename")
+        exec 2>/dev/null  # Redirect stderr again
         continue
     fi
     
     total_files=$((total_files + 1))
     echo -n "Proving $filename... "
+    exec 2>/dev/null  # Redirect stderr to suppress job control messages
     
     # Create temporary files for output and status (sanitize filename for use in paths)
     safe_filename=$(echo "$filename" | tr '/' '_' | tr ' ' '_')
@@ -104,11 +274,18 @@ for smt2_file in "$SMT2_DIR"/*.smt2; do
     cvc5_status="/tmp/cvc5_status_$$_$safe_filename"
     z3_status="/tmp/z3_status_$$_$safe_filename"
     
+    # Snapshot existing cvc5 PGIDs so we can identify this run's portfolio group.
+    cvc5_pgids_before=$(cvc5_pgids_snapshot)
+
     # Start both commands in parallel
     (timeout $TIMEOUT_SECONDS $CVC5_CMD < "$smt2_file" > "$cvc5_output" 2>&1; echo $? > "$cvc5_status") &
     cvc5_pid=$!
     (timeout $TIMEOUT_SECONDS $Z3_CMD "$smt2_file" > "$z3_output" 2>&1; echo $? > "$z3_status") &
     z3_pid=$!
+
+    # cvc5 --use-portfolio leaves worker processes alive after the parent exits;
+    # discover their process group in the monitor loop (non-blocking).
+    cvc5_pgid=""
     
     # Monitor both processes with a maximum wait time
     final_result=""
@@ -124,18 +301,22 @@ for smt2_file in "$SMT2_DIR"/*.smt2; do
     max_wait_time=$((TIMEOUT_SECONDS + 2))  # Add 2 seconds buffer for process cleanup
     
     while true; do
+        # Opportunistically capture portfolio PGID once workers appear
+        if [ -z "$cvc5_pgid" ]; then
+            cvc5_pgid=$(find_new_cvc5_pgid "$cvc5_pgids_before")
+        fi
+
         current_time=$(date +%s)
         elapsed=$((current_time - start_time))
         
         # Timeout the monitoring loop if it's been too long
         if [ $elapsed -gt $max_wait_time ]; then
-            # Force kill any remaining processes
-            if kill -0 $cvc5_pid 2>/dev/null; then
-                kill -9 $cvc5_pid 2>/dev/null || true
+            # Force kill launcher + portfolio workers
+            if [ -z "$cvc5_pgid" ]; then
+                cvc5_pgid=$(find_new_cvc5_pgid "$cvc5_pgids_before")
             fi
-            if kill -0 $z3_pid 2>/dev/null; then
-                kill -9 $z3_pid 2>/dev/null || true
-            fi
+            kill_process_group "$cvc5_pgid" "$cvc5_pid"
+            kill_process_group "" "$z3_pid"
             # Wait briefly for processes to terminate
             sleep 0.5
             # Mark as done if status files exist, otherwise assume timeout
@@ -157,19 +338,22 @@ for smt2_file in "$SMT2_DIR"/*.smt2; do
             cvc5_done=true
             cvc5_exit_code=$(cat "$cvc5_status" 2>/dev/null | tr -d '[:space:]' || echo "")
             
-            # Parse cvc5 result
+            # Parse cvc5 result BEFORE reaping (workers may still write to the fd)
             if [ -f "$cvc5_output" ]; then
                 cvc5_result=$(grep -E "^(sat|unsat|unknown)$" "$cvc5_output" 2>/dev/null | tail -1 || echo "")
             fi
+
+            # Parent often exits while portfolio workers remain — find+reap them now
+            if [ -z "$cvc5_pgid" ]; then
+                cvc5_pgid=$(find_new_cvc5_pgid "$cvc5_pgids_before")
+            fi
+            kill_process_group "$cvc5_pgid" ""
             
-            # If cvc5 returned sat/unsat, kill z3
+            # If cvc5 returned sat/unsat, kill z3 (suppress termination messages)
             if [ "$cvc5_result" = "sat" ] || [ "$cvc5_result" = "unsat" ]; then
                 if kill -0 $z3_pid 2>/dev/null; then
-                    # z3 is still running, kill it
-                    kill $z3_pid 2>/dev/null || true
+                    kill_process_group "" "$z3_pid"
                     z3_killed=true
-                    # Wait briefly for z3 to terminate, but don't wait forever
-                    timeout 2 bash -c "while kill -0 $z3_pid 2>/dev/null; do sleep 0.1; done" 2>/dev/null || true
                 fi
                 z3_done=true
                 final_result="$cvc5_result"
@@ -187,15 +371,13 @@ for smt2_file in "$SMT2_DIR"/*.smt2; do
                 z3_result=$(grep -E "^(sat|unsat|unknown)$" "$z3_output" 2>/dev/null | tail -1 || echo "")
             fi
             
-            # If z3 returned sat/unsat, kill cvc5
+            # If z3 returned sat/unsat, kill cvc5 + portfolio workers
             if [ "$z3_result" = "sat" ] || [ "$z3_result" = "unsat" ]; then
-                if kill -0 $cvc5_pid 2>/dev/null; then
-                    # cvc5 is still running, kill it
-                    kill $cvc5_pid 2>/dev/null || true
-                    cvc5_killed=true
-                    # Wait briefly for cvc5 to terminate, but don't wait forever
-                    timeout 2 bash -c "while kill -0 $cvc5_pid 2>/dev/null; do sleep 0.1; done" 2>/dev/null || true
+                if [ -z "$cvc5_pgid" ]; then
+                    cvc5_pgid=$(find_new_cvc5_pgid "$cvc5_pgids_before")
                 fi
+                kill_process_group "$cvc5_pgid" "$cvc5_pid"
+                cvc5_killed=true
                 cvc5_done=true
                 final_result="$z3_result"
                 break
@@ -212,6 +394,10 @@ for smt2_file in "$SMT2_DIR"/*.smt2; do
                 if [ -f "$cvc5_output" ]; then
                     cvc5_result=$(grep -E "^(sat|unsat|unknown)$" "$cvc5_output" 2>/dev/null | tail -1 || echo "")
                 fi
+                if [ -z "$cvc5_pgid" ]; then
+                    cvc5_pgid=$(find_new_cvc5_pgid "$cvc5_pgids_before")
+                fi
+                kill_process_group "$cvc5_pgid" ""
             fi
         fi
         
@@ -236,9 +422,15 @@ for smt2_file in "$SMT2_DIR"/*.smt2; do
         sleep 0.1
     done
     
-    # Wait briefly for any remaining processes (with timeout)
-    timeout 2 bash -c "wait $cvc5_pid 2>/dev/null || true" 2>/dev/null || true
-    timeout 2 bash -c "wait $z3_pid 2>/dev/null || true" 2>/dev/null || true
+    # Wait briefly for any remaining launcher processes
+    wait $cvc5_pid 2>/dev/null || true
+    wait $z3_pid 2>/dev/null || true
+    # Final reap in case portfolio workers survived the monitor loop
+    if [ -z "$cvc5_pgid" ]; then
+        cvc5_pgid=$(find_new_cvc5_pgid "$cvc5_pgids_before")
+    fi
+    kill_process_group "$cvc5_pgid" ""
+    kill_process_group "" "$z3_pid"
     
     # Ensure we read exit codes if they weren't set
     if [ -z "$cvc5_exit_code" ] && [ -f "$cvc5_status" ]; then
@@ -298,7 +490,8 @@ for smt2_file in "$SMT2_DIR"/*.smt2; do
         solver_used="z3"
     fi
     
-    # Process final result
+    # Process final result (restore stderr for echo commands)
+    exec 2>&3  # Restore stderr for echo commands
     case "$final_result" in
         sat)
             echo -e "${RED}SAT${NC}${solver_used:+ (via $solver_used)}"
@@ -306,6 +499,7 @@ for smt2_file in "$SMT2_DIR"/*.smt2; do
             sat_files+=("$filename")
             echo "$filename: SAT${solver_used:+ (via $solver_used)}" >> "$RESULTS_FILE"
             if ! grep -Fxq "$filename" "$SAT_CACHE_FILE"; then echo "$filename" >> "$SAT_CACHE_FILE"; fi
+            update_timestamp_cache "$filename" "$smt2_file"
             ;;
         unsat)
             echo -e "${GREEN}UNSAT${NC}${solver_used:+ (via $solver_used)}"
@@ -313,6 +507,7 @@ for smt2_file in "$SMT2_DIR"/*.smt2; do
             unsat_files+=("$filename")
             echo "$filename: UNSAT${solver_used:+ (via $solver_used)}" >> "$RESULTS_FILE"
             if ! grep -Fxq "$filename" "$CACHE_FILE"; then echo "$filename" >> "$CACHE_FILE"; fi
+            update_timestamp_cache "$filename" "$smt2_file"
             ;;
         unknown)
             echo -e "${YELLOW}UNKNOWN${NC}"
@@ -321,6 +516,8 @@ for smt2_file in "$SMT2_DIR"/*.smt2; do
             echo "$filename: UNKNOWN" >> "$RESULTS_FILE"
             echo "  cvc5: ${cvc5_result:-no result} (exit ${cvc5_exit_code:-unknown})" >> "$RESULTS_FILE"
             echo "  z3: ${z3_result:-no result} (exit ${z3_exit_code:-unknown})" >> "$RESULTS_FILE"
+            # Update timestamp even for unknown/timeout/error so we don't keep retrying unchanged files
+            update_timestamp_cache "$filename" "$smt2_file"
             ;;
         timeout)
             echo -e "${YELLOW}TIMEOUT${NC}"
@@ -329,6 +526,8 @@ for smt2_file in "$SMT2_DIR"/*.smt2; do
             echo "$filename: TIMEOUT" >> "$RESULTS_FILE"
             echo "  cvc5: ${cvc5_result:-no result} (exit ${cvc5_exit_code:-unknown})" >> "$RESULTS_FILE"
             echo "  z3: ${z3_result:-no result} (exit ${z3_exit_code:-unknown})" >> "$RESULTS_FILE"
+            # Update timestamp even for unknown/timeout/error so we don't keep retrying unchanged files
+            update_timestamp_cache "$filename" "$smt2_file"
             ;;
         error)
             echo -e "${RED}ERROR${NC}"
@@ -343,12 +542,18 @@ for smt2_file in "$SMT2_DIR"/*.smt2; do
             if [ -f "$z3_output" ]; then
                 echo "  z3 output: $(cat "$z3_output")" >> "$RESULTS_FILE"
             fi
+            # Update timestamp even for unknown/timeout/error so we don't keep retrying unchanged files
+            update_timestamp_cache "$filename" "$smt2_file"
             ;;
     esac
+    exec 2>/dev/null  # Redirect stderr again to suppress job control messages
     
     # Clean up temporary files
     rm -f "$cvc5_output" "$z3_output" "$cvc5_status" "$z3_status"
 done
+
+# Restore stderr after the loop
+exec 2>&3
 
 # Clean up temp files
 rm -f /tmp/cvc5_output.txt /tmp/z3_output.txt

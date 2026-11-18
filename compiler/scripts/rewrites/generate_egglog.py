@@ -13,6 +13,7 @@ Generated on 2025-12-22 by Cursor AI.
 """
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Optional, cast, Union
@@ -147,8 +148,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s equiv/ rewrites.json output.egg
-  %(prog)s /path/to/equiv/ /path/to/rewrites.json /path/to/output.egg
+  %(prog)s equiv/ rewrites.json ../../c2po/egglog/rewrites
         """
     )
     parser.add_argument(
@@ -217,7 +217,6 @@ Examples:
     error_count = 0
     temporal_rules_content = []
     const_folding_rules_content = []
-    extended_operators_rules_content = []
 
     # Process each .equiv file
     for equiv_file in equiv_files:
@@ -269,12 +268,6 @@ Examples:
             pre_expr = expr_to_egglog(pre_spec.get_expr())
             post_expr = expr_to_egglog(post_spec.get_expr())
 
-            has_extended_operators = False
-            for expr in cpt.postorder(pre_spec.get_expr(), context):
-                if isinstance(expr, cpt.Operator) and expr.operator.is_extended_operator():
-                    has_extended_operators = True
-                    break
-
             is_subsumed = False
             for expr in cpt.postorder(pre_spec.get_expr(), context):
                 if repr(expr) == repr(post_spec.get_expr()):
@@ -291,6 +284,16 @@ Examples:
             # If so, warn and convert to regular rewrite
             if is_birewrite and is_subsumed:
                 print(f"Warning: Rule {rule_index} ({equiv_file.name}) is both a birewrite and marked for subsumption. Converting to regular rewrite.", file=sys.stderr)
+                is_birewrite = False
+
+            # Compound bound ops on the RHS make the reverse birewrite pattern
+            # ungrounded in egglog (e.g. matching (+ b1 b0)). Downgrade to rewrite.
+            if is_birewrite and re.search(r"\([+\-]|min |max ", post_expr):
+                print(
+                    f"Warning: Rule {rule_index} ({equiv_file.name}) is a birewrite "
+                    "with compound interval arithmetic in post; converting to rewrite.",
+                    file=sys.stderr,
+                )
                 is_birewrite = False
 
             is_const_folding = rewrites[rule_index].get("const", False)
@@ -310,16 +313,12 @@ Examples:
             if is_subsumed:
                 rule_content += "  :subsume\n"
 
-            # If the post expression is a constant or the rule is marked for const-folding, use the const-folding ruleset
-            # If we do not, the performance of egglog is terrible. We also separate extended operator rules into their own files.
+            # Const-folding ruleset for constant posts / marked rules; everything
+            # else (including extended operators) goes in temporal.egg.
             if "Bool" in post_expr or is_const_folding:
                 rule_content += "  :ruleset const-folding\n"
                 rule_content += ")\n"
                 const_folding_rules_content.append(rule_content)
-            elif has_extended_operators:
-                rule_content += "  :ruleset mltl-rewrites\n"
-                rule_content += ")\n"
-                extended_operators_rules_content.append(rule_content)
             else:
                 rule_content += "  :ruleset mltl-rewrites\n"
                 rule_content += ")\n"
@@ -334,46 +333,30 @@ Examples:
             traceback.print_exc()
             error_count += 1
     
-    # Write all rules to a single file
-    print()
-    print(f"Writing {len(temporal_rules_content)} temporal rules to {output_directory / 'temporal.egg'}...", end=" ", flush=True)
-    
-    try:
-        with open(output_directory / "temporal.egg", 'w') as f:
-            # Write all rules
-            for rule_content in temporal_rules_content:
-                f.write(rule_content)
-                f.write("\n")
-        
-        print("✓")
-    except Exception as e:
-        print(f"✗ Error writing output file: {e}")
-        error_count += 1
+    def write_rules(path: Path, rules: list[str], label: str) -> None:
+        nonlocal error_count
+        print(f"Writing {len(rules)} {label} to {path}...", end=" ", flush=True)
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                for rule_content in rules:
+                    f.write(rule_content)
+                    f.write("\n")
+            print("✓")
+        except Exception as e:
+            print(f"✗ Error writing output file: {e}")
+            error_count += 1
 
-    print(f"Writing {len(const_folding_rules_content)} const-folding rules to {output_directory / 'const_folding.egg'}...", end=" ", flush=True)
-    try:
-        with open(output_directory / "const_folding.egg", 'w') as f:
-            # Write all rules
-            for rule_content in const_folding_rules_content:
-                f.write(rule_content)
-                f.write("\n")
-        
-        print("✓")
-    except Exception as e:
-        print(f"✗ Error writing output file: {e}")
-        error_count += 1
     print()
-    print(f"Writing {len(extended_operators_rules_content)} extended operator rules to {output_directory / 'extended.egg'}...", end=" ", flush=True)
-    try:
-        with open(output_directory / "extended.egg", 'w') as f:
-            # Write all rules
-            for rule_content in extended_operators_rules_content:
-                f.write(rule_content)
-                f.write("\n")
-    except Exception as e:
-        print(f"✗ Error writing output file: {e}")
-        error_count += 1
-    print("✓")
+    write_rules(
+        output_directory / "temporal.egg",
+        temporal_rules_content,
+        "temporal rules",
+    )
+    write_rules(
+        output_directory / "const_folding.egg",
+        const_folding_rules_content,
+        "const-folding rules",
+    )
     print()
     print(f"Summary: {success_count} rules processed, {error_count} failed")
     print(f"Output written to: {output_directory}")

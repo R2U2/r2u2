@@ -202,16 +202,14 @@ Then:
 The same encoding is used to prove rewrite-rule correctness. Rewrite schemas live in
 `scripts/rewrites/rewrites.json`. From `scripts/rewrites/`:
 
-    python3 generate_equiv_files.py rewrites.json equiv/
-    python3 generate_egglog.py equiv rewrites.json ../../c2po/egglog
-    ./generate_smt2_equiv.sh equiv/ smt2/ ../../c2po.py
+    ./prove_rewrites.sh [timeout] [jobs]      # SMT proofs
+    ./generate_egg.sh                         # egglog files for c2po
 
 Each generated `.smt2` file encodes the *negation* of a rewrite's equivalence, so `unsat` means the
-rewrite is valid. Dispatch the proofs with `scripts/prove.sh` (expects `z3` and `cvc5` in `PATH`):
+rewrite is valid (`z3` and `cvc5` must be on `PATH`). Egg files are written to
+`c2po/egglog/rewrites/`.
 
-    ../prove.sh smt2/
-
-See `scripts/rewrites/README.md` for the full workflow.
+See `scripts/README.md` and `scripts/rewrites/README.md`.
 
 ## Testing
 
