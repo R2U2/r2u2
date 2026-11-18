@@ -199,12 +199,9 @@ Then:
 `write_equiv_smt_encoding` writes the SMT encodings used for those pairwise checks. See
 `docs/user/equiv.md` and `test/equiv/`.
 
-The same encoding is used to prove rewrite-rule correctness. MLTL rewrite schemas live in
-`scripts/rewrites/rewrites.json`; FRET paper rules are generated under `scripts/fret/`.
-Shared generators (`generate_equiv_files.py`, `generate_smt2_equiv.sh`, `prove.sh`,
-`generate_egglog.py`) live in `scripts/`. From either pipeline directory:
+The same encoding is used to prove rewrite-rule correctness. Rewrite schemas live in
+`scripts/rewrites/rewrites.json`. From `scripts/rewrites/`:
 
-    ./prepare.sh                              # refresh equiv/ (and FRET JSON)
     ./prove_rewrites.sh [timeout] [jobs]      # SMT proofs
     ./generate_egg.sh                         # egglog files for c2po
 
@@ -212,7 +209,7 @@ Each generated `.smt2` file encodes the *negation* of a rewrite's equivalence, s
 rewrite is valid (`z3` and `cvc5` must be on `PATH`). Egg files are written to
 `c2po/egglog/rewrites/`.
 
-See `scripts/README.md`, `scripts/rewrites/README.md`, and `scripts/fret/README.md`.
+See `scripts/README.md` and `scripts/rewrites/README.md`.
 
 ## Testing
 

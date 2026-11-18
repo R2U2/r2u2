@@ -188,12 +188,6 @@ parser.add_argument(
     help="enable temporal rewrite rule for equality saturation"
 )
 parser.add_argument(
-    "--eqsat-fret",
-    action=argparse.BooleanOptionalAction,
-    default=True,
-    help="enable FRET paper rewrite rules for equality saturation"
-)
-parser.add_argument(
     "--eqsat-max-time", 
     type=int, 
     default=5, 
@@ -291,7 +285,6 @@ elif args.spec or args.formula:
             enable_eqsat_commutative=args.eqsat_commutative,
             enable_eqsat_multi_arity=args.eqsat_multi_arity,
             enable_eqsat_temporal=args.eqsat_temporal,
-            enable_eqsat_fret=args.eqsat_fret,
             eqsat_max_time=args.eqsat_max_time,
             eqsat_max_memory=args.eqsat_max_memory,
             num_gurobi_threads=args.num_gurobi_threads,

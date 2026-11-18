@@ -13,13 +13,14 @@ Generated on 2025-12-22 by Cursor AI.
 """
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Optional, cast, Union
 
 # Add the compiler directory to the path so we can import c2po modules
 script_dir = Path(__file__).parent
-compiler_dir = script_dir.parent
+compiler_dir = script_dir.parent.parent
 sys.path.insert(0, str(compiler_dir))
 
 # Import after path setup
@@ -148,7 +149,6 @@ def main():
         epilog="""
 Examples:
   %(prog)s equiv/ rewrites.json ../../c2po/egglog/rewrites
-  %(prog)s equiv/ fret_rewrites_grounded.json ../../c2po/egglog/rewrites --bundle fret.egg
         """
     )
     parser.add_argument(
@@ -166,14 +166,6 @@ Examples:
         type=Path,
         help="Output directory to write the .egg files to"
     )
-    parser.add_argument(
-        "--bundle",
-        type=str,
-        default=None,
-        metavar="FILE",
-        help="Write all rules into a single FILE in the output directory "
-             "(e.g. fret.egg) instead of temporal/const_folding.egg",
-    )
     
     args = parser.parse_args()
     
@@ -181,7 +173,6 @@ Examples:
     equiv_dir = args.equiv_dir
     rewrites_json = args.json_file
     output_directory = args.output_directory
-    bundle_name = args.bundle
     
     # Check if paths exist
     if not equiv_dir.exists() or not equiv_dir.is_dir():
@@ -295,6 +286,16 @@ Examples:
                 print(f"Warning: Rule {rule_index} ({equiv_file.name}) is both a birewrite and marked for subsumption. Converting to regular rewrite.", file=sys.stderr)
                 is_birewrite = False
 
+            # Compound bound ops on the RHS make the reverse birewrite pattern
+            # ungrounded in egglog (e.g. matching (+ b1 b0)). Downgrade to rewrite.
+            if is_birewrite and re.search(r"\([+\-]|min |max ", post_expr):
+                print(
+                    f"Warning: Rule {rule_index} ({equiv_file.name}) is a birewrite "
+                    "with compound interval arithmetic in post; converting to rewrite.",
+                    file=sys.stderr,
+                )
+                is_birewrite = False
+
             is_const_folding = rewrites[rule_index].get("const", False)
             
             # Convert constraints to :when format
@@ -346,20 +347,16 @@ Examples:
             error_count += 1
 
     print()
-    if bundle_name:
-        bundled = temporal_rules_content + const_folding_rules_content
-        write_rules(output_directory / bundle_name, bundled, "bundled rules")
-    else:
-        write_rules(
-            output_directory / "temporal.egg",
-            temporal_rules_content,
-            "temporal rules",
-        )
-        write_rules(
-            output_directory / "const_folding.egg",
-            const_folding_rules_content,
-            "const-folding rules",
-        )
+    write_rules(
+        output_directory / "temporal.egg",
+        temporal_rules_content,
+        "temporal rules",
+    )
+    write_rules(
+        output_directory / "const_folding.egg",
+        const_folding_rules_content,
+        "const-folding rules",
+    )
     print()
     print(f"Summary: {success_count} rules processed, {error_count} failed")
     print(f"Output written to: {output_directory}")

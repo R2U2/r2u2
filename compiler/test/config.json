@@ -1,15 +1,15 @@
 {
     "desugar": [
         {
-            "script": "desugar/array_1.cmd", 
+            "script": "desugar/array_1.cmd",
             "output": "desugar/array_1.expect"
         },
         {
-            "script": "desugar/array_2.cmd", 
+            "script": "desugar/array_2.cmd",
             "output": "desugar/array_2.expect"
         },
         {
-            "script": "desugar/struct.cmd", 
+            "script": "desugar/struct.cmd",
             "output": "desugar/struct.expect"
         },
         {
@@ -17,79 +17,79 @@
             "output": "desugar/struct_enum.expect"
         },
         {
-            "script": "desugar/enum.cmd", 
+            "script": "desugar/enum.cmd",
             "output": "desugar/enum.expect"
         }
     ],
     "push-pop": [
         {
-            "script": "push_pop/push_pop.cmd", 
+            "script": "push_pop/push_pop.cmd",
             "output": "push_pop/push_pop.expect"
         }
     ],
     "cse": [
         {
-            "script": "cse/basic.cmd", 
+            "script": "cse/basic.cmd",
             "output": "cse/basic.expect"
         }
     ],
     "set-agg": [
         {
-            "script": "set_agg/basic.cmd", 
+            "script": "set_agg/basic.cmd",
             "output": "set_agg/basic.expect"
         },
         {
-            "script": "set_agg/basic_arr.cmd", 
+            "script": "set_agg/basic_arr.cmd",
             "output": "set_agg/basic_arr.expect"
         },
         {
-            "script": "set_agg/basic_arr2.cmd", 
+            "script": "set_agg/basic_arr2.cmd",
             "output": "set_agg/basic_arr2.expect"
         },
         {
-            "script": "set_agg/struct_arr.cmd", 
+            "script": "set_agg/struct_arr.cmd",
             "output": "set_agg/struct_arr.expect"
         },
         {
-            "script": "set_agg/var_arr.cmd", 
+            "script": "set_agg/var_arr.cmd",
             "output": "set_agg/var_arr.expect"
         }
     ],
     "operators": [
         {
-            "script": "operators/arithmetic.cmd", 
+            "script": "operators/arithmetic.cmd",
             "output": "operators/arithmetic.expect"
         },
         {
-            "script": "operators/arithmetic_invalid.cmd", 
+            "script": "operators/arithmetic_invalid.cmd",
             "output": "operators/arithmetic_invalid.expect"
         },
         {
-            "script": "operators/bitwise.cmd", 
+            "script": "operators/bitwise.cmd",
             "output": "operators/bitwise.expect"
         },
         {
-            "script": "operators/logic.cmd", 
+            "script": "operators/logic.cmd",
             "output": "operators/logic.expect"
         },
         {
-            "script": "operators/relational.cmd", 
+            "script": "operators/relational.cmd",
             "output": "operators/relational.expect"
         },
         {
-            "script": "operators/temporal.cmd", 
+            "script": "operators/temporal.cmd",
             "output": "operators/temporal.expect"
         },
         {
-            "script": "operators/timestamp.cmd", 
+            "script": "operators/timestamp.cmd",
             "output": "operators/timestamp.expect"
         },
         {
-            "script": "operators/array_index_prec.cmd", 
+            "script": "operators/array_index_prec.cmd",
             "output": "operators/array_index_prec.expect"
         },
         {
-            "script": "operators/prev.cmd", 
+            "script": "operators/prev.cmd",
             "output": "operators/prev.expect"
         }
     ],
@@ -311,103 +311,106 @@
     ],
     "serialize": [
         {
-            "script": "serialize/arbiter.cmd", 
+            "script": "serialize/arbiter.cmd",
             "output": "serialize/arbiter.expect"
         },
         {
-            "script": "serialize/simple_c2po.cmd", 
+            "script": "serialize/simple_c2po.cmd",
             "output": "serialize/simple_c2po.expect"
         },
         {
-            "script": "serialize/simple_mltl.cmd", 
+            "script": "serialize/simple_mltl.cmd",
             "output": "serialize/simple_mltl.expect"
         },
         {
-            "script": "serialize/simple_prefix.cmd", 
+            "script": "serialize/simple_prefix.cmd",
             "output": "serialize/simple_prefix.expect"
         },
         {
-            "script": "serialize/multi_arity_c2po.cmd", 
+            "script": "serialize/multi_arity_c2po.cmd",
             "output": "serialize/multi_arity_c2po.expect"
         },
         {
-            "script": "serialize/multi_arity_mltl.cmd", 
+            "script": "serialize/multi_arity_mltl.cmd",
             "output": "serialize/multi_arity_mltl.expect"
         },
         {
-            "script": "serialize/multi_arity_prefix.cmd", 
+            "script": "serialize/multi_arity_prefix.cmd",
             "output": "serialize/multi_arity_prefix.expect"
         }
     ],
     "mltl": [
         {
-            "script": "mltl/atomics.cmd", 
+            "script": "mltl/atomics.cmd",
             "output": "mltl/atomics.expect"
         },
         {
-            "script": "mltl/future.cmd", 
+            "script": "mltl/future.cmd",
             "output": "mltl/future.expect"
         },
         {
-            "script": "mltl/past.cmd", 
+            "script": "mltl/past.cmd",
             "output": "mltl/past.expect"
         },
         {
-            "script": "mltl/tense_mixing.cmd", 
+            "script": "mltl/tense_mixing.cmd",
             "output": "mltl/tense_mixing.expect"
         },
         {
             "name": "mltl/formula",
             "formula": "G[0,10] (a0 & (F[0,3] a1))",
-            "options": ["-o", "/dev/null"],
+            "options": [
+                "-o",
+                "/dev/null"
+            ],
             "output": "mltl/formula.expect"
         }
     ],
     "normal_forms": [
         {
-            "script": "normal_forms/nnf_prop.cmd", 
+            "script": "normal_forms/nnf_prop.cmd",
             "output": "normal_forms/nnf_prop.expect"
         },
         {
-            "script": "normal_forms/nnf_temporal.cmd", 
+            "script": "normal_forms/nnf_temporal.cmd",
             "output": "normal_forms/nnf_temporal.expect"
         }
     ],
     "rewrites": [
         {
-            "script": "rewrites/and_future.cmd", 
+            "script": "rewrites/and_future.cmd",
             "output": "rewrites/and_future.expect"
         },
         {
-            "script": "rewrites/and_global.cmd", 
+            "script": "rewrites/and_global.cmd",
             "output": "rewrites/and_global.expect"
         },
         {
-            "script": "rewrites/and_until.cmd", 
+            "script": "rewrites/and_until.cmd",
             "output": "rewrites/and_until.expect"
         },
         {
-            "script": "rewrites/equality.cmd", 
+            "script": "rewrites/equality.cmd",
             "output": "rewrites/equality.expect"
         },
         {
-            "script": "rewrites/future.cmd", 
+            "script": "rewrites/future.cmd",
             "output": "rewrites/future.expect"
-        },  
+        },
         {
-            "script": "rewrites/global.cmd", 
+            "script": "rewrites/global.cmd",
             "output": "rewrites/global.expect"
         },
         {
-            "script": "rewrites/negate.cmd", 
+            "script": "rewrites/negate.cmd",
             "output": "rewrites/negate.expect"
         },
         {
-            "script": "rewrites/or_future.cmd", 
+            "script": "rewrites/or_future.cmd",
             "output": "rewrites/or_future.expect"
         },
         {
-            "script": "rewrites/or_global.cmd", 
+            "script": "rewrites/or_global.cmd",
             "output": "rewrites/or_global.expect"
         }
     ],

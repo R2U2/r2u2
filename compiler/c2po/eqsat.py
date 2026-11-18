@@ -41,7 +41,6 @@ REWRITE_PATHS = {
     "multi_arity": REWRITES_DIR / "multi_arity.egg",
     "const_folding": REWRITES_DIR / "const_folding.egg",
     "temporal": REWRITES_DIR / "temporal.egg",
-    "fret": REWRITES_DIR / "fret.egg",
 }
 
 def find_egglog(context: cpt.Context, use_experimental: bool = False) -> Optional[str]:
@@ -90,7 +89,6 @@ def to_egglog(
     - `multi-arity`: Whether to enable multi-arity rewrites
     - `const-folding`: Whether to enable const folding
     - `temporal`: Whether to enable temporal rewrites
-    - `fret`: Whether to enable FRET paper rewrites
     - `extended`: Whether to enable extended operator rewrites
 
     Returns:
@@ -388,14 +386,6 @@ write_eqsat_encoding_command = command.Command(
             "default": True,
             "choices": None,
         },
-        {
-            "name": "fret",
-            "description": "Whether to enable FRET paper rewrites",
-            "required": False,
-            "type": bool,
-            "default": True,
-            "choices": None,
-        },
     ],
     func=write_eqsat_encoding,
     guards=[command.COMPUTED_ATOMICS],
@@ -414,7 +404,6 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
     - `commutative`: Whether to enable commutative rewrites
     - `multi-arity`: Whether to enable multi-arity rewrites
     - `temporal`: Whether to enable temporal rewrites
-    - `fret`: Whether to enable FRET paper rewrites
     - `extended`: Whether to enable extended operator rewrites
     - `egglog-max-time`: The maximum time to allow for egglog in seconds
     - `egglog-max-memory`: The maximum memory to allow for egglog in MB, use 0 for no maximum
@@ -675,14 +664,6 @@ optimize_eqsat_command = command.Command(
         {
             "name": "temporal",
             "description": "Whether to enable temporal rewrites",
-            "required": False,
-            "type": bool,
-            "default": True,
-            "choices": None,
-        },
-        {
-            "name": "fret",
-            "description": "Whether to enable FRET paper rewrites",
             "required": False,
             "type": bool,
             "default": True,
