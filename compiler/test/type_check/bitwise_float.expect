@@ -1,0 +1,2 @@
+type_check: error: bitwise_float.c2po:4: Invalid operands for '&', found 'float' ('x') but expected 'int'
+    (x & y)

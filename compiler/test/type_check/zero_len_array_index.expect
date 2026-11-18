@@ -1,0 +1,1 @@
+type_check: error: zero_len_array_index.c2po:2: input signal array size must be greater than zero (found 'A: int[0]')

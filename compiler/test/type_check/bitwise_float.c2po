@@ -1,0 +1,4 @@
+INPUT
+    x,y: float;
+FTSPEC
+    (x & y) > 0.0;

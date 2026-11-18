@@ -1,0 +1,2 @@
+type_check: error: modulo_by_zero.c2po:4: modulo by zero
+    (a % 0)

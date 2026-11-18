@@ -1,0 +1,1 @@
+parse_c2po illegal_char.c2po

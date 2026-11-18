@@ -105,12 +105,14 @@ class C2POLexer(sly.Lexer):
     def __init__(self, filename: str):
         super().__init__()
         self.filename = filename
+        self.status = True
 
     # Extra action for newlines
     def ignore_newline(self, t):
         self.lineno += t.value.count("\n")
 
     def error(self, t):
+        self.status = False
         log.error(f"illegal character '{t.value[0]}'", log.FileLocation(self.filename, self.lineno))
         self.index += 1
 
@@ -156,6 +158,9 @@ class C2POParser(sly.Parser):
             log.error(f"syntax error, token is 'None' (EOF)",
                       log.FileLocation(self.filename, lineno)
             )
+        # Abort immediately: SLY panic-mode recovery can loop forever on some
+        # inputs (notably malformed ENUM bodies).
+        raise SyntaxError("c2po parse aborted after syntax error")
 
     def fresh_label(self) -> str:
         # TODO: Change this to a more compact name
@@ -411,7 +416,7 @@ class C2POParser(sly.Parser):
     # Empty array expression
     @_("LBRACE RBRACE")
     def expr(self, p):
-        return cpt.ArrayExpression(ln, [])
+        return cpt.ArrayExpression(log.FileLocation(self.filename, p.lineno), [])
 
     # Parameterized set aggregation expression
     @_("KW_FOREXACTLY LPAREN SYMBOL COLON expr COMMA expr RPAREN LPAREN expr RPAREN")
@@ -701,9 +706,12 @@ def parse_c2po(context: cpt.Context, options: dict[str, Any]) -> Optional[cpt.Pr
 
     lexer: C2POLexer = C2POLexer(options["filename"])
     parser: C2POParser = C2POParser(options["filename"], context.mission_time)
-    sections: list[cpt.C2POSection] = parser.parse(lexer.tokenize(contents))
+    try:
+        sections: list[cpt.C2POSection] = parser.parse(lexer.tokenize(contents))
+    except SyntaxError:
+        return None
 
-    if not parser.status:
+    if not parser.status or not lexer.status:
         return None
 
     return cpt.Program(0, sections)

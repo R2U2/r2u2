@@ -1,0 +1,2 @@
+type_check: error: eq_bool_int.c2po:5: Invalid operands for '==', must be of same type (found 'bool' and 'int')
+    (a == i)

@@ -48,8 +48,8 @@ The following words are reserved words and therefore cannot be used as identifie
 
     STRUCT ENUM INPUT DEFINE FTSPEC PTSPEC
     foreach forsome forexactly foratleast foratmost
-    pow sqrt abs xor prev
-    G F H O U R S M
+    pow sqrt abs xor prev TAU
+    G F H O U R S T M
     true false
 
 ## Types
@@ -71,6 +71,7 @@ as follows:
 
 Arrays in defined structs can be given either concrete or indeterminate sizes (as in `my_array` or
 `my_array_2`). Array slices can also be defined within specifications (e.g., `my_array_2[2..4]` is equivalent to the slice containing `my_array_2[2]`, `my_array_2[3]`, and `my_array_2[4]`).
+Negative indices count from the end of a sized array (e.g., `my_array_2[-1]` is the last element).
 
 C2PO also supports user-definable C-style enums. We can define an enum with members as follows:
 
@@ -95,7 +96,8 @@ INPUT
 ```
 
 This defines the variables listed as you would expect and these variables are now free to be used in
-any following sections. In order to know which variable corresponds to which input to R2U2, C2PO
+any following sections. Sized input arrays must have length greater than zero (e.g., `int[0]` is
+rejected). In order to know which variable corresponds to which input to R2U2, C2PO
 needs a mapping of variables to input vector indices. See the page on [signal
 mapping](./signal_mapping.md) for more information.
 
@@ -151,6 +153,8 @@ During compilation this is expanded to (where `n` is the size of `A`):
     (A[0] > 0) && (A[2] > 0) && ... && (A[n] > 0);
 
 C2PO supports `foreach` and `forsome`, `forexactly`, `foratleast`, and `foratmost` operators.
+`foreach` over an empty array is vacuously true; `forsome` over an empty array is vacuously false.
+Parameterized aggregations (`forexactly`, `foratleast`, `foratmost`) still require a non-empty array.
 
 ## Definitions
 

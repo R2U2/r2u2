@@ -1,0 +1,1 @@
+parse_c2po bad_enum_syntax.c2po

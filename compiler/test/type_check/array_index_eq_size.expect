@@ -1,0 +1,1 @@
+type_check: error: array_index_eq_size.c2po:4: out-of-bounds array index (A[3])

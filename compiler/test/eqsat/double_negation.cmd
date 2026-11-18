@@ -6,7 +6,7 @@ optimize_cse
 compute_scq_sizes
 print_stats "%scq "
 
-optimize_eqsat --check-equiv --extraction-method ilp
+optimize_eqsat --check-equiv --no-commutative --extraction-method ilp
 
 optimize_cse
 compute_scq_sizes

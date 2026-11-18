@@ -1,0 +1,3 @@
+parse_c2po pow_float_neg.c2po
+enable_booleanizer
+type_check

@@ -1,0 +1,4 @@
+INPUT
+    x: float;
+FTSPEC
+    (abs(x)) > 0.0;

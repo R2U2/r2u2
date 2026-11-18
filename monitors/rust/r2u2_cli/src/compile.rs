@@ -45,6 +45,7 @@ pub fn c2po_compile(spec_filename: &str,
     let map_code = c_str!(include_str!("../compiler/c2po/map.py"));
     let r2u2_code = c_str!(include_str!("../compiler/c2po/r2u2.py"));
     let wcet_code = c_str!(include_str!("../compiler/c2po/wcet.py"));
+    let simulate_code = c_str!(include_str!("../compiler/c2po/simulate.py"));
     let main_code = c_str!(include_str!("../compiler/c2po/main.py"));
 
     let from_python = Python::attach(|py| -> PyResult<()> {
@@ -86,6 +87,7 @@ pub fn c2po_compile(spec_filename: &str,
         PyModule::from_code(py, r2u2_code, c_str!("c2po/r2u2.py"), c_str!("c2po.r2u2"))?;
         PyModule::from_code(py, wcet_code, c_str!("c2po/wcet.py"), c_str!("c2po.wcet"))?;
         PyModule::from_code(py, sabre_code, c_str!("c2po/sabre.py"), c_str!("c2po.sabre"))?;
+        PyModule::from_code(py, simulate_code, c_str!("c2po/simulate.py"), c_str!("c2po.simulate"))?;
         
         // Main module (depends on all others)
         let main_py = PyModule::from_code(py, main_code, c_str!("c2po/main.py"), c_str!("c2po.main"))?;

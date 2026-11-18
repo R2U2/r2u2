@@ -1,0 +1,2 @@
+parse_c2po formula_ref_as_bool.c2po
+type_check

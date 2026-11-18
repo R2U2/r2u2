@@ -1,0 +1,6 @@
+INPUT
+    a: bool;
+    A: int[3];
+FTSPEC
+    a;
+    A[0] > A[1];

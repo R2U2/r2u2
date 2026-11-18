@@ -1,0 +1,3 @@
+parse_c2po divide_by_zero.c2po
+enable_booleanizer
+type_check

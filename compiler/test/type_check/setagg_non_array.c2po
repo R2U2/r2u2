@@ -1,0 +1,4 @@
+INPUT
+    i: int;
+FTSPEC
+    foreach(x: i)(x > 0);

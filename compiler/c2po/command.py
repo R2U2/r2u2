@@ -655,7 +655,11 @@ def print_stats(program: cpt.Program, context: cpt.Context, options: dict[str, A
     `options` is a dictionary containing the following key:
         - `format`: The format string to use for the statistics
     """
-    context.stats.first_formula_string = str(cast(cpt.Formula, program.get_specs()[0]).get_expr())
+    specs = program.get_specs()
+    if specs:
+        context.stats.first_formula_string = str(cast(cpt.Formula, specs[0]).get_expr())
+    else:
+        context.stats.first_formula_string = ""
     context.stats.total_dag_size = program.get_dag_size(context)
     context.stats.num_temporal_operators = program.get_num_temporal_operators(context)
     print(context.stats.format(options["format"]), end="")

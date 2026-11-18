@@ -1,0 +1,3 @@
+parse_c2po struct_wrong_arity.c2po
+enable_booleanizer
+type_check

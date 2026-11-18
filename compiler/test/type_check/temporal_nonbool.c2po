@@ -1,0 +1,4 @@
+INPUT
+    i: int;
+FTSPEC
+    G[0,1] i;

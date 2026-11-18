@@ -109,8 +109,10 @@ def generate_map(
 
         missing = cpt.assign_signal_ids(program, context, mapping)
         if len(missing) > 0:
-            log.internal(
-                f"auto-generated map file does not contain all signals in the program: {', '.join(missing)}",
+            # Deduplicate while preserving order for a clearer message
+            unique_missing = list(dict.fromkeys(missing))
+            log.error(
+                f"auto-generated map file does not contain all signals in the program: {', '.join(unique_missing)}",
             )
             return command.ReturnCode.ERROR
 

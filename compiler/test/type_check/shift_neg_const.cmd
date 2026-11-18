@@ -1,0 +1,3 @@
+parse_c2po shift_neg_const.c2po
+enable_booleanizer
+type_check

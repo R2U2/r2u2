@@ -1,0 +1,2 @@
+type_check: error: divide_by_zero.c2po:4: divide by zero
+    (a / 0)

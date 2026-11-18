@@ -1,0 +1,3 @@
+parse_c2po setagg_nonbool_body.c2po
+enable_booleanizer
+type_check

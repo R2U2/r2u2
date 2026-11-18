@@ -1,0 +1,3 @@
+parse_c2po bitwise_float.c2po
+enable_booleanizer
+type_check
