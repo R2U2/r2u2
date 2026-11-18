@@ -228,7 +228,7 @@ def to_qf_bv_smtlib2(start: cpt.Expression, context: cpt.Context, strict: bool) 
             continue
 
         if isinstance(expr, cpt.Atomic):
-            expr_map[expr] = expr_map[expr.children[0]]
+            expr_map[expr] = expr_map[expr.get_expr()]
             continue
 
         expr_id = f"f_e{cnt}"
@@ -520,7 +520,7 @@ def to_qf_uflia_smtlib2(start: cpt.Expression, context: cpt.Context, strict: boo
             continue
 
         if isinstance(expr, cpt.Atomic):
-            expr_map[expr] = expr_map[expr.children[0]]
+            expr_map[expr] = expr_map[expr.get_expr()]
             continue
 
         expr_id = f"f_e{cnt}"
@@ -830,7 +830,7 @@ def to_uflia_smtlib2(
         elif isinstance(expr, (cpt.Signal, cpt.Variable)):
             return f"({fun_signature} ({atomic_map[expr.symbol]} k))"
         elif isinstance(expr, cpt.Atomic):
-            return f"({fun_signature} (and (> len k) ({expr_map[expr.children[0]]} k len)))"
+            return f"({fun_signature} (and (> len k) ({expr_map[expr.get_expr()]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_ADD):
             return f"({fun_signature} (+ ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_SUBTRACT) and len(expr.children) == 2:
@@ -1002,7 +1002,7 @@ def to_uflia_smtlib2(
                 return cplen_cache[expr]
 
             if isinstance(expr, cpt.Atomic):
-                cplen = cplen_cache[expr.children[0]]
+                cplen = cplen_cache[expr.get_expr()]
             elif isinstance(expr, cpt.Constant):
                 cplen = "1"
             elif isinstance(expr, (cpt.Signal, cpt.Variable)):
@@ -1160,22 +1160,40 @@ def to_uf_smtlib2(
         log.error("symbolic bounds and constraints are not supported for UF encoding")
         return None
 
-    def unwrap(expr: cpt.Expression) -> cpt.Expression:
-        while isinstance(expr, cpt.Atomic):
-            expr = expr.children[0]
-        return expr
+    Op = cpt.OperatorKind
+    ORDERED = {
+        Op.GREATER_THAN,
+        Op.GREATER_THAN_OR_EQUAL,
+        Op.LESS_THAN,
+        Op.LESS_THAN_OR_EQUAL,
+    }
+    NEGATE = {Op.LOGICAL_NEGATE, Op.BITWISE_NEGATE}
+    AND = {Op.LOGICAL_AND, Op.BITWISE_AND}
+    OR = {Op.LOGICAL_OR, Op.BITWISE_OR}
+    XOR = {Op.LOGICAL_XOR, Op.BITWISE_XOR}
+    GLOBAL_FUTURE = {Op.GLOBAL, Op.FUTURE}
+    UNTIL_RELEASE = {Op.UNTIL, Op.RELEASE}
 
     def is_leaf(expr: cpt.Expression) -> bool:
-        expr = unwrap(expr)
-        return isinstance(expr, (cpt.Constant, cpt.Signal, cpt.Variable))
+        return isinstance(expr.unwrap(), (cpt.Constant, cpt.Signal, cpt.Variable))
 
-    def is_until_or_release(expr: cpt.Expression) -> bool:
-        return cpt.is_operator(expr, cpt.OperatorKind.UNTIL) or cpt.is_operator(
-            expr, cpt.OperatorKind.RELEASE
-        )
+    def interval(expr: cpt.Expression) -> tuple[int, int]:
+        expr = cast(cpt.TemporalOperator, expr)
+        return (expr.interval.lb, expr.interval.ub)
 
-    start = unwrap(start)
-    status = True
+    def children_to_define(expr: cpt.Expression) -> list[cpt.Expression]:
+        expr = expr.unwrap()
+        if is_leaf(expr) or not isinstance(expr, cpt.Operator):
+            return []
+        if expr.operator in UNTIL_RELEASE:
+            lb, ub = interval(expr)
+            kids = [expr.children[1].unwrap()]
+            if lb < ub:
+                kids.append(expr.children[0].unwrap())
+            return kids
+        return [child.unwrap() for child in expr.children]
+
+    start = start.unwrap()
 
     for expr in cpt.postorder(start, context):
         if isinstance(expr, cpt.SymbolicTemporalOperator):
@@ -1192,11 +1210,7 @@ def to_uf_smtlib2(
         if cpt.is_arithmetic_operator(expr):
             log.error(f"unsupported expression {expr} for UF encoding")
             return None
-        if cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN) or cpt.is_operator(
-            expr, cpt.OperatorKind.GREATER_THAN_OR_EQUAL
-        ) or cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN) or cpt.is_operator(
-            expr, cpt.OperatorKind.LESS_THAN_OR_EQUAL
-        ):
+        if isinstance(expr, cpt.Operator) and expr.operator in ORDERED:
             log.error(f"ordered comparison is not supported for UF encoding\n\t{expr}")
             return None
         if cpt.is_bitwise_operator(expr) and not all(
@@ -1210,32 +1224,21 @@ def to_uf_smtlib2(
             log.error(f"unsupported type '{expr.type}' for expression {expr}")
             return None
 
-    def interval(expr: cpt.Expression) -> tuple[int, int]:
-        expr = cast(cpt.TemporalOperator, expr)
-        return (expr.interval.lb, expr.interval.ub)
-
-    def children_to_define(expr: cpt.Expression) -> list[cpt.Expression]:
-        expr = unwrap(expr)
-        if is_leaf(expr) or not isinstance(expr, cpt.Operator):
-            return []
-        if is_until_or_release(expr):
-            lb, ub = interval(expr)
-            kids = [unwrap(expr.children[1])]
-            if lb < ub:
-                kids.append(unwrap(expr.children[0]))
-            return kids
-        return [unwrap(child) for child in expr.children]
-
+    # Accumulated lower/upper bounds for each subformula occurrence.
     alb: dict[int, int] = {id(start): 0}
     aub: dict[int, int] = {id(start): 0}
+    max_time = start.wpd
+    status = True
     bound_q: deque[cpt.Expression] = deque([start])
+
     while bound_q:
-        node = unwrap(bound_q.popleft())
+        node = bound_q.popleft().unwrap()
         node_alb = alb[id(node)]
         node_aub = aub[id(node)]
+        max_time = max(max_time, node_aub)
 
         def propagate(child: cpt.Expression, child_alb: int, child_aub: int) -> None:
-            child = unwrap(child)
+            child = child.unwrap()
             cid = id(child)
             if cid in alb:
                 new_alb = min(alb[cid], child_alb)
@@ -1252,7 +1255,13 @@ def to_uf_smtlib2(
 
         if is_leaf(node):
             continue
-        if cpt.is_operator(node, cpt.OperatorKind.LOGICAL_NEGATE):
+        if not isinstance(node, cpt.Operator):
+            for child in node.children:
+                propagate(child, node_alb, node_aub)
+            continue
+
+        op = node.operator
+        if op in NEGATE:
             propagate(node.children[0], node_alb, node_aub)
         elif (
             cpt.is_logical_operator(node)
@@ -1261,54 +1270,40 @@ def to_uf_smtlib2(
         ):
             for child in node.children:
                 propagate(child, node_alb, node_aub)
-        elif cpt.is_operator(node, cpt.OperatorKind.GLOBAL) or cpt.is_operator(
-            node, cpt.OperatorKind.FUTURE
-        ):
+        elif op in GLOBAL_FUTURE:
             lb, ub = interval(node)
+            max_time = max(max_time, node_aub + ub)
             propagate(node.children[0], node_alb + lb, node_aub + ub)
-        elif is_until_or_release(node):
+        elif op in UNTIL_RELEASE:
             lb, ub = interval(node)
+            max_time = max(max_time, node_aub + ub)
             propagate(node.children[1], node_alb + lb, node_aub + ub)
             if lb < ub:
                 propagate(node.children[0], node_alb + lb, node_aub + ub - 1)
-        elif isinstance(node, cpt.Operator):
+        else:
             log.error(f"unsupported expression {node}")
             status = False
-        else:
-            for child in node.children:
-                propagate(child, node_alb, node_aub)
 
     if not status:
         return None
 
+    # Collect non-leaf subformulas that need slack definitions (BFS order).
     slack_map: dict[int, str] = {}
-    slack_cnt = 0
-    define_q: deque[cpt.Expression] = deque()
-    define_seen: set[int] = {id(start)}
-    for child in children_to_define(start):
-        define_q.append(child)
-        define_seen.add(id(child))
-
+    define_nodes: list[cpt.Expression] = []
+    define_q: deque[cpt.Expression] = deque(children_to_define(start))
+    define_seen: set[int] = {id(start)} | {id(child) for child in define_q}
     while define_q:
-        node = unwrap(define_q.popleft())
+        node = define_q.popleft().unwrap()
         if is_leaf(node):
             continue
-        if id(node) not in slack_map:
-            slack_map[id(node)] = f"t{slack_cnt}"
-            slack_cnt += 1
+        nid = id(node)
+        if nid not in slack_map:
+            slack_map[nid] = f"t{len(slack_map)}"
+            define_nodes.append(node)
         for child in children_to_define(node):
             if id(child) not in define_seen:
                 define_seen.add(id(child))
                 define_q.append(child)
-
-    max_time = start.wpd
-    for expr_id, expr_aub in aub.items():
-        max_time = max(max_time, expr_aub)
-    for expr in cpt.postorder(start, context):
-        if isinstance(expr, cpt.TemporalOperator):
-            expr_id = id(unwrap(expr))
-            if expr_id in aub:
-                max_time = max(max_time, aub[expr_id] + expr.interval.ub)
 
     def tau(t: int) -> str:
         return f"tau_{t}"
@@ -1316,19 +1311,21 @@ def to_uf_smtlib2(
     def len_gt_at(t: int) -> str:
         return f"len_gt_{t}"
 
-    has_int_const = any(
-        isinstance(expr, cpt.Constant) and not types.is_bool_type(expr.type)
+    int_consts = [
+        expr
         for expr in cpt.postorder(start, context)
+        if isinstance(expr, cpt.Constant) and not types.is_bool_type(expr.type)
+    ]
+    has_int_sort = bool(int_consts) or any(
+        isinstance(typ, types.IntType)
+        for typ in (*context.signals.values(), *context.variables.values())
     )
-    has_int_sort = has_int_const or any(
-        isinstance(typ, types.IntType) for typ in context.signals.values()
-    ) or any(isinstance(typ, types.IntType) for typ in context.variables.values())
 
-    atomic_map: dict[str, str] = {}
-    int_const_map: dict[int, str] = {}
-    smt_commands: list[str] = [PREAMBLE]
-    smt_commands.append("(set-logic QF_UF)")
-    smt_commands.append("(declare-sort Time 0)")
+    smt_commands: list[str] = [
+        PREAMBLE,
+        "(set-logic QF_UF)",
+        "(declare-sort Time 0)",
+    ]
     if has_int_sort:
         smt_commands.append("(declare-sort Value 0)")
 
@@ -1339,27 +1336,19 @@ def to_uf_smtlib2(
             f"(assert (distinct {' '.join(tau(t) for t in range(max_time + 1))}))"
         )
 
-    for signal, typ in context.signals.items():
-        if types.is_bool_type(typ):
-            atomic_map[signal] = f"f_{signal}"
-            smt_commands.append(f"(declare-fun f_{signal} (Time) Bool)")
-        elif isinstance(typ, types.IntType):
-            atomic_map[signal] = f"f_{signal}"
-            smt_commands.append(f"(declare-fun f_{signal} (Time) Value)")
-        else:
-            log.error(f"unsupported type '{typ}' ({signal})")
-            return None
-
-    for variable, typ in context.variables.items():
-        if types.is_bool_type(typ):
-            atomic_map[variable] = f"p_{variable}"
-            smt_commands.append(f"(declare-fun p_{variable} (Time) Bool)")
-        elif isinstance(typ, types.IntType):
-            atomic_map[variable] = f"p_{variable}"
-            smt_commands.append(f"(declare-fun p_{variable} (Time) Value)")
-        else:
-            log.error(f"unsupported type '{typ}' ({variable})")
-            return None
+    atomic_map: dict[str, str] = {}
+    for prefix, atoms in (("f", context.signals), ("p", context.variables)):
+        for name, typ in atoms.items():
+            atom = f"{prefix}_{name}"
+            if types.is_bool_type(typ):
+                sort = "Bool"
+            elif isinstance(typ, types.IntType):
+                sort = "Value"
+            else:
+                log.error(f"unsupported type '{typ}' ({name})")
+                return None
+            atomic_map[name] = atom
+            smt_commands.append(f"(declare-fun {atom} (Time) {sort})")
 
     for slack in slack_map.values():
         smt_commands.append(f"(declare-fun {slack} (Time) Bool)")
@@ -1370,6 +1359,8 @@ def to_uf_smtlib2(
         for t in range(max_time):
             smt_commands.append(f"(assert (=> {len_gt_at(t + 1)} {len_gt_at(t)}))")
 
+    int_const_map: dict[int, str] = {}
+
     def int_const(value: int) -> str:
         if value not in int_const_map:
             name = f"c_{value}" if value >= 0 else f"c_neg_{abs(value)}"
@@ -1377,17 +1368,22 @@ def to_uf_smtlib2(
             smt_commands.append(f"(declare-fun {name} () Value)")
         return int_const_map[value]
 
-    for expr in cpt.postorder(start, context):
-        if isinstance(expr, cpt.Constant) and not types.is_bool_type(expr.type):
-            int_const(int(expr.value))
+    for expr in int_consts:
+        int_const(int(expr.value))
     if len(int_const_map) > 1:
         smt_commands.append(
             f"(assert (distinct {' '.join(int_const_map.values())}))"
         )
 
+    def require_len(t: int, body: str) -> str:
+        return f"(and {len_gt_at(t)} {body})" if strict else body
+
+    def vacuous_len(t: int, body: str) -> str:
+        return f"(or (not {len_gt_at(t)}) {body})" if strict else body
+
     def apply_at(expr: cpt.Expression, t: int) -> str:
         nonlocal status
-        expr = unwrap(expr)
+        expr = expr.unwrap()
         if isinstance(expr, cpt.Constant) and types.is_bool_type(expr.type):
             if expr.value:
                 return len_gt_at(t) if strict else "true"
@@ -1398,110 +1394,94 @@ def to_uf_smtlib2(
             return f"({slack_map[id(expr)]} {tau(t)})"
         if isinstance(expr, (cpt.Signal, cpt.Variable)):
             atom = f"({atomic_map[expr.symbol]} {tau(t)})"
-            if types.is_bool_type(expr.type) and strict:
-                return f"(and {len_gt_at(t)} {atom})"
-            return atom
+            return require_len(t, atom) if types.is_bool_type(expr.type) else atom
         log.error(f"unsupported expression {expr}")
         status = False
         return "false"
 
+    def nary(op: str, children: list[cpt.Expression], j: int) -> str:
+        return f"({op} {' '.join(apply_at(child, j) for child in children)})"
+
+    def xor_chain(children: list[cpt.Expression], j: int) -> str:
+        result = apply_at(children[0], j)
+        for child in children[1:]:
+            result = f"(xor {result} {apply_at(child, j)})"
+        return result
+
     def expand(expr: cpt.Expression, j: int) -> str:
         nonlocal status
-        expr = unwrap(expr)
+        expr = expr.unwrap()
 
         if is_leaf(expr):
             return apply_at(expr, j)
-        if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE) or cpt.is_operator(
-            expr, cpt.OperatorKind.BITWISE_NEGATE
-        ):
-            return f"(not {apply_at(expr.children[0], j)})"
-        if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND) or cpt.is_operator(
-            expr, cpt.OperatorKind.BITWISE_AND
-        ):
-            operands = " ".join(apply_at(child, j) for child in expr.children)
-            return f"(and {operands})"
-        if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR) or cpt.is_operator(
-            expr, cpt.OperatorKind.BITWISE_OR
-        ):
-            operands = " ".join(apply_at(child, j) for child in expr.children)
-            return f"(or {operands})"
-        if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_XOR) or cpt.is_operator(
-            expr, cpt.OperatorKind.BITWISE_XOR
-        ):
-            result = apply_at(expr.children[0], j)
-            for child in expr.children[1:]:
-                result = f"(xor {result} {apply_at(child, j)})"
-            return result
-        if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
-            return f"(=> {apply_at(expr.children[0], j)} {apply_at(expr.children[1], j)})"
-        if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
-            return f"(= {apply_at(expr.children[0], j)} {apply_at(expr.children[1], j)})"
-        if cpt.is_operator(expr, cpt.OperatorKind.EQUAL):
-            eq = f"(= {apply_at(expr.children[0], j)} {apply_at(expr.children[1], j)})"
-            return f"(and {len_gt_at(j)} {eq})" if strict else eq
-        if cpt.is_operator(expr, cpt.OperatorKind.NOT_EQUAL):
-            neq = f"(not (= {apply_at(expr.children[0], j)} {apply_at(expr.children[1], j)}))"
-            return f"(and {len_gt_at(j)} {neq})" if strict else neq
-        if cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
+        if not isinstance(expr, cpt.Operator):
+            log.error(f"unsupported expression {expr}")
+            status = False
+            return "false"
+
+        op = expr.operator
+        kids = expr.children
+
+        if op in NEGATE:
+            return f"(not {apply_at(kids[0], j)})"
+        if op in AND:
+            return nary("and", kids, j)
+        if op in OR:
+            return nary("or", kids, j)
+        if op in XOR:
+            return xor_chain(kids, j)
+        if op is Op.LOGICAL_IMPLIES:
+            return f"(=> {apply_at(kids[0], j)} {apply_at(kids[1], j)})"
+        if op is Op.LOGICAL_EQUIV:
+            return f"(= {apply_at(kids[0], j)} {apply_at(kids[1], j)})"
+        if op is Op.EQUAL:
+            return require_len(j, f"(= {apply_at(kids[0], j)} {apply_at(kids[1], j)})")
+        if op is Op.NOT_EQUAL:
+            return require_len(
+                j, f"(not (= {apply_at(kids[0], j)} {apply_at(kids[1], j)}))"
+            )
+        if op is Op.GLOBAL or op is Op.FUTURE:
             lb, ub = interval(expr)
-            conds = [apply_at(expr.children[0], j + i) for i in range(lb, ub + 1)]
-            body = f"(and {' '.join(conds)})"
-            if strict:
-                return f"(or (not {len_gt_at(j + lb)}) {body})"
-            return body
-        if cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
+            conn = "and" if op is Op.GLOBAL else "or"
+            body = (
+                f"({conn} "
+                f"{' '.join(apply_at(kids[0], j + i) for i in range(lb, ub + 1))})"
+            )
+            return (
+                vacuous_len(j + lb, body)
+                if op is Op.GLOBAL
+                else require_len(j + lb, body)
+            )
+        if op in UNTIL_RELEASE:
             lb, ub = interval(expr)
-            conds = [apply_at(expr.children[0], j + i) for i in range(lb, ub + 1)]
-            body = f"(or {' '.join(conds)})"
-            if strict:
-                return f"(and {len_gt_at(j + lb)} {body})"
-            return body
-        if cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
-            lb, ub = interval(expr)
-            temp = apply_at(expr.children[1], ub + j)
+            lhs, rhs = kids[0], kids[1]
+            temp = apply_at(rhs, ub + j)
             for i in range(ub - 1, lb - 1, -1):
-                temp = (
-                    f"(or {apply_at(expr.children[1], i + j)} "
-                    f"(and {apply_at(expr.children[0], i + j)} {temp}))"
-                )
-            if strict:
-                return f"(and {len_gt_at(j + lb)} {temp})"
-            return temp
-        if cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
-            lb, ub = interval(expr)
-            temp = apply_at(expr.children[1], ub + j)
-            for i in range(ub - 1, lb - 1, -1):
-                temp = (
-                    f"(and {apply_at(expr.children[1], i + j)} "
-                    f"(or {apply_at(expr.children[0], i + j)} {temp}))"
-                )
-            if strict:
-                return f"(or (not {len_gt_at(j + lb)}) {temp})"
-            return temp
+                if op is Op.UNTIL:
+                    temp = (
+                        f"(or {apply_at(rhs, i + j)} "
+                        f"(and {apply_at(lhs, i + j)} {temp}))"
+                    )
+                else:
+                    temp = (
+                        f"(and {apply_at(rhs, i + j)} "
+                        f"(or {apply_at(lhs, i + j)} {temp}))"
+                    )
+            return (
+                require_len(j + lb, temp)
+                if op is Op.UNTIL
+                else vacuous_len(j + lb, temp)
+            )
 
         log.error(f"unsupported expression {expr}")
         status = False
         return "false"
 
     smt_commands.append(f"(assert {expand(start, 0)})")
-
-    equiv_q: deque[cpt.Expression] = deque(children_to_define(start))
-    equiv_seen: set[int] = {id(start)}
-    while equiv_q:
-        node = unwrap(equiv_q.popleft())
+    for node in define_nodes:
         nid = id(node)
-        if nid in equiv_seen:
-            continue
-        equiv_seen.add(nid)
-        if is_leaf(node) or nid not in slack_map:
-            continue
-        node_alb = alb.get(nid, 0)
-        node_aub = aub.get(nid, 0)
-        for j in range(node_alb, node_aub + 1):
+        for j in range(alb.get(nid, 0), aub.get(nid, 0) + 1):
             smt_commands.append(f"(assert (= {apply_at(node, j)} {expand(node, j)}))")
-        for child in children_to_define(node):
-            if id(child) not in equiv_seen:
-                equiv_q.append(child)
 
     if not status:
         return None

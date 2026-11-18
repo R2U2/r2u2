@@ -130,6 +130,15 @@ class Expression(Node):
     def deepcopy(self, context: Context) -> Expression:
         return deepcopy_expr(self, context, {})
 
+    def unwrap(self) -> Expression:
+        """Return the expression beneath an Atomic wrapper, else self.
+
+        Atomic nodes are booleanizer boundaries and are transparent for
+        many analyses that only care about the underlying MLTL/boolean
+        structure. Override on Atomic; the default is the identity.
+        """
+        return self
+
 class Match(Expression):
     def __init__(self, loc: log.FileLocation, name: str, match_function: Callable[[str], bool]) -> None:
         super().__init__(loc, [])
@@ -768,6 +777,9 @@ class Atomic(Expression):
 
     def get_expr(self) -> Expression:
         return cast(Expression, self.children[0])
+
+    def unwrap(self) -> Expression:
+        return self.get_expr()
 
     def __repr__(self) -> str:
         return f"Atomic({repr(self.children[0])})"
@@ -2078,7 +2090,7 @@ def to_infix_str(start: Expression) -> str:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
         elif isinstance(expr, Atomic):
-            stack.append((0, expr.children[0]))
+            stack.append((0, expr.get_expr()))
         elif isinstance(expr, Formula):
             if seen == 0:
                 if not expr.is_internal_label():
