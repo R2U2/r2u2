@@ -1,6 +1,6 @@
 # R2U2 Core
 
-The Realizable, Reconfigurable, Unobtrusive Unit (R2U2) is a stream-based runtime verification
+The Realizable, Responsive, Unobtrusive Unit (R2U2) is a stream-based runtime verification
 framework based on Mission-time Linear Temporal Logic (MLTL) designed to monitor safety- or
 mission-critical systems with constrained computational resources.
 
